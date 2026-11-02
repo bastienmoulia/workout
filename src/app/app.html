@@ -1,0 +1,173 @@
+<div class="blobs" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<header class="top">
+  <h1 class="brand">Workout <span aria-hidden="true">⚡</span></h1>
+  <button
+    type="button"
+    class="icon-btn"
+    (click)="toggleSound()"
+    [attr.aria-pressed]="soundEnabled()"
+    [attr.aria-label]="soundEnabled() ? 'Couper le son' : 'Activer le son'"
+  >
+    {{ soundEnabled() ? '🔊' : '🔇' }}
+  </button>
+</header>
+
+<div
+  class="series-bar"
+  role="progressbar"
+  aria-label="Progression de la série"
+  [attr.aria-valuenow]="seriesPercent()"
+  aria-valuemin="0"
+  aria-valuemax="100"
+>
+  <div class="series-bar__fill" [style.transform]="'scaleX(' + seriesProgress() + ')'"></div>
+</div>
+<ol class="dots" aria-hidden="true">
+  @for (item of program; track $index) {
+    <li
+      [class.done]="$index < state().index || state().phase === 'finished'"
+      [class.current]="$index === state().index && state().phase !== 'finished'"
+    ></li>
+  }
+</ol>
+
+<main class="stage" aria-live="polite">
+  @for (key of [intervalKey()]; track key) {
+    <div class="interval" animate.enter="pop-in">
+      @switch (state().phase) {
+        @case ('idle') {
+          <p class="label">Prêt·e&nbsp;?</p>
+          <p class="emoji bounce" aria-hidden="true">{{ exercise().emoji }}</p>
+          <h2 class="name">{{ exercise().name }}</h2>
+          <p class="hint">{{ program.length }} exercices · {{ totalLabel }}</p>
+        }
+        @case ('preparation') {
+          <p class="label">Prépare-toi&nbsp;!</p>
+          <h2 class="name">{{ exercise().name }}</h2>
+        }
+        @case ('exercise') {
+          <p class="label">Exercice {{ state().index + 1 }}/{{ program.length }}</p>
+          <h2 class="name">{{ exercise().name }}</h2>
+        }
+        @case ('recovery') {
+          <p class="label">Récupération</p>
+          <p class="next-label">Prochain exercice</p>
+          <h2 class="name">{{ exercise().name }}</h2>
+        }
+        @case ('finished') {
+          <p class="label">Bravo&nbsp;!</p>
+          <p class="emoji trophy" aria-hidden="true">🏆</p>
+          <h2 class="name">Série terminée</h2>
+          <p class="hint">{{ program.length }} exercices en {{ totalLabel }} 💜</p>
+        }
+      }
+    </div>
+  }
+
+  @if (state().phase !== 'idle' && state().phase !== 'finished') {
+    <div class="ring" [class.paused]="!state().running" [class.last-seconds]="seconds() <= 3">
+      <svg viewBox="0 0 280 280" aria-hidden="true">
+        <defs>
+          <linearGradient id="ring-gradient" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="var(--ring-from)" />
+            <stop offset="100%" stop-color="var(--ring-to)" />
+          </linearGradient>
+        </defs>
+        <circle class="ring__track" cx="140" cy="140" [attr.r]="ringRadius" />
+        <circle
+          class="ring__value"
+          cx="140"
+          cy="140"
+          [attr.r]="ringRadius"
+          [attr.stroke-dasharray]="ringCircumference"
+          [attr.stroke-dashoffset]="ringOffset()"
+        />
+      </svg>
+      @for (s of [seconds()]; track s) {
+        <span class="ring__seconds" animate.enter="tick-in" role="timer">{{ s }}</span>
+      }
+      @if (!state().running) {
+        <span class="ring__paused">En pause</span>
+      }
+    </div>
+  }
+
+  @if (state().phase === 'exercise' && nextExercise(); as upcoming) {
+    <p class="upcoming">Ensuite&nbsp;: <strong>{{ upcoming.name }}</strong></p>
+  } @else if (state().phase === 'exercise') {
+    <p class="upcoming">Dernier exercice, à fond&nbsp;! 🔥</p>
+  }
+</main>
+
+@if (state().phase === 'finished') {
+  <div class="confetti" aria-hidden="true">
+    @for (i of confetti; track i) {
+      <span [style.--i]="i"></span>
+    }
+  </div>
+}
+
+<footer class="controls">
+  <button
+    type="button"
+    class="ctrl ctrl--small"
+    (click)="resetExercise()"
+    [disabled]="state().phase === 'idle' || state().phase === 'finished'"
+  >
+    <span aria-hidden="true">↺</span>
+    <small>Exercice</small>
+  </button>
+
+  <button
+    type="button"
+    class="ctrl ctrl--main"
+    [class.is-running]="state().running"
+    (click)="togglePlay()"
+    [attr.aria-label]="
+      state().running ? 'Pause' : state().phase === 'finished' ? 'Recommencer' : 'Play'
+    "
+  >
+    @if (state().running) {
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5" /><rect x="14" y="4" width="5" height="16" rx="1.5" /></svg>
+    } @else if (state().phase === 'finished') {
+      <span class="ctrl__glyph" aria-hidden="true">↻</span>
+    } @else {
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z" /></svg>
+    }
+  </button>
+
+  <button
+    type="button"
+    class="ctrl ctrl--small"
+    (click)="askResetSeries()"
+    [disabled]="state().phase === 'idle'"
+  >
+    <span aria-hidden="true">⟲</span>
+    <small>Série</small>
+  </button>
+</footer>
+
+@if (confirmingReset()) {
+  <div class="backdrop" animate.enter="fade-in" (click)="confirmResetSeries(false)">
+    <div
+      class="dialog"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="reset-title"
+      animate.enter="pop-in"
+      (click)="$event.stopPropagation()"
+    >
+      <h2 id="reset-title">Recommencer la série&nbsp;?</h2>
+      <p>Ta progression sera effacée et tu repartiras du premier exercice.</p>
+      <div class="dialog__actions">
+        <button type="button" class="btn btn--ghost" (click)="confirmResetSeries(false)">
+          Annuler
+        </button>
+        <button type="button" class="btn btn--danger" (click)="confirmResetSeries(true)">
+          Recommencer
+        </button>
+      </div>
+    </div>
+  </div>
+}

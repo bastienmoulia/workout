@@ -1,0 +1,160 @@
+import {
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+} from '@angular/core';
+import { DOCUMENT } from '@angular/common';
+import { PROGRAM, SERIES_TOTAL_MS, EXERCISE_MS, PREPARATION_MS, RECOVERY_MS } from './workout/program';
+import {
+  SeriesEvent,
+  SeriesState,
+  hasStarted,
+  pause,
+  phaseDuration,
+  resetExercise,
+  resetSeries,
+  tick,
+  togglePlay,
+} from './workout/series';
+import { SoundService } from './workout/sound.service';
+import { StorageService } from './workout/storage.service';
+import { WakeLockService } from './workout/wake-lock.service';
+
+const TICK_MS = 100;
+const RING_RADIUS = 120;
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.html',
+  styleUrl: './app.scss',
+  host: { '[class]': '"phase-" + state().phase' },
+})
+export class App {
+  private readonly sound = inject(SoundService);
+  private readonly storage = inject(StorageService);
+  private readonly wakeLock = inject(WakeLockService);
+  private readonly document = inject(DOCUMENT);
+
+  protected readonly program = PROGRAM;
+  protected readonly ringCircumference = 2 * Math.PI * RING_RADIUS;
+  protected readonly ringRadius = RING_RADIUS;
+  protected readonly confetti = Array.from({ length: 28 }, (_, i) => i);
+
+  protected readonly state = signal<SeriesState>(this.storage.loadSeries());
+  protected readonly soundEnabled = signal(this.storage.loadSoundEnabled());
+  protected readonly confirmingReset = signal(false);
+
+  protected readonly exercise = computed(() => PROGRAM[this.state().index]);
+  protected readonly nextExercise = computed(() => PROGRAM[this.state().index + 1]);
+  protected readonly seconds = computed(() => Math.ceil(this.state().remainingMs / 1000));
+  protected readonly ringOffset = computed(() => {
+    const { phase, remainingMs } = this.state();
+    const duration = phaseDuration(phase);
+    const done = duration === 0 ? 1 : 1 - remainingMs / duration;
+    return this.ringCircumference * done;
+  });
+  protected readonly seriesProgress = computed(() => elapsedMs(this.state()) / SERIES_TOTAL_MS);
+  protected readonly seriesPercent = computed(() => Math.round(this.seriesProgress() * 100));
+  protected readonly totalLabel = formatDuration(SERIES_TOTAL_MS);
+  /** Changes on every interval so its content re-animates. */
+  protected readonly intervalKey = computed(() => `${this.state().phase}-${this.state().index}`);
+
+  constructor() {
+    let last = performance.now();
+    const timer = setInterval(() => {
+      const now = performance.now();
+      const elapsed = now - last;
+      last = now;
+      const current = this.state();
+      if (!current.running) return;
+      const result = tick(current, elapsed);
+      this.state.set(result.state);
+      this.play(result.events);
+    }, TICK_MS);
+
+    const onVisibility = () => {
+      if (this.document.visibilityState === 'hidden') this.state.update(pause);
+    };
+    this.document.addEventListener('visibilitychange', onVisibility);
+
+    inject(DestroyRef).onDestroy(() => {
+      clearInterval(timer);
+      this.document.removeEventListener('visibilitychange', onVisibility);
+      void this.wakeLock.allowSleep();
+    });
+
+    effect(() => this.storage.saveSeries(this.state()));
+    effect(() => this.storage.saveSoundEnabled(this.soundEnabled()));
+    effect(() => {
+      const running = this.state().running;
+      untracked(() => (running ? this.wakeLock.keepAwake() : this.wakeLock.allowSleep()));
+    });
+  }
+
+  protected togglePlay(): void {
+    this.sound.unlock();
+    if (this.state().phase === 'finished') {
+      this.state.set(resetSeries());
+    }
+    this.state.update(togglePlay);
+  }
+
+  protected resetExercise(): void {
+    this.state.update(resetExercise);
+  }
+
+  protected askResetSeries(): void {
+    const { phase } = this.state();
+    if (hasStarted(this.state()) && phase !== 'finished') {
+      this.state.update(pause);
+      this.confirmingReset.set(true);
+    } else {
+      this.state.set(resetSeries());
+    }
+  }
+
+  protected confirmResetSeries(confirmed: boolean): void {
+    this.confirmingReset.set(false);
+    if (confirmed) this.state.set(resetSeries());
+  }
+
+  protected toggleSound(): void {
+    this.sound.unlock();
+    this.soundEnabled.update((enabled) => !enabled);
+  }
+
+  private play(events: SeriesEvent[]): void {
+    if (!this.soundEnabled()) return;
+    for (const event of events) {
+      if (event.type === 'countdown') this.sound.countdown();
+      else if (event.type === 'finished') this.sound.finished();
+      else this.sound.go();
+    }
+  }
+}
+
+function elapsedMs({ phase, index, remainingMs }: SeriesState): number {
+  switch (phase) {
+    case 'idle':
+      return 0;
+    case 'finished':
+      return SERIES_TOTAL_MS;
+    case 'preparation':
+      return PREPARATION_MS - remainingMs;
+    case 'exercise':
+      return PREPARATION_MS + index * (EXERCISE_MS + RECOVERY_MS) + EXERCISE_MS - remainingMs;
+    case 'recovery':
+      return PREPARATION_MS + index * (EXERCISE_MS + RECOVERY_MS) - remainingMs;
+  }
+}
+
+function formatDuration(ms: number): string {
+  const totalSeconds = Math.round(ms / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return seconds ? `${minutes} min ${String(seconds).padStart(2, '0')}` : `${minutes} min`;
+}
