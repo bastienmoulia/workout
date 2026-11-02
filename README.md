@@ -1,6 +1,7 @@
 # Workout ⚡
 
 Timer d'entraînement mobile : 10 exercices de 60 s, 10 s de récupération entre chaque, 5 s de préparation (11 min 35 au total).
+Installable comme PWA, avec icône dédiée et fonctionnement hors ligne après le premier chargement.
 
 👉 https://bastienmoulia.github.io/workout/
 
