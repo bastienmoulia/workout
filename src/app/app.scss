@@ -102,21 +102,6 @@
   &:active { transform: scale(0.9); }
 }
 
-.series-bar {
-  height: 0.5rem;
-  margin-top: 1rem;
-  border-radius: 1rem;
-  background: rgb(255 255 255 / 0.15);
-  overflow: hidden;
-
-  &__fill {
-    height: 100%;
-    background: linear-gradient(90deg, var(--ring-from), var(--ring-to));
-    transform-origin: left;
-    transition: transform 0.2s linear;
-  }
-}
-
 .dots {
   display: flex;
   justify-content: space-between;
@@ -253,16 +238,6 @@
   &.paused .ring__seconds { opacity: 0.6; }
   &.last-seconds:not(.paused) { animation: heartbeat 1s ease-in-out infinite; }
   &.last-seconds .ring__seconds { color: var(--accent); }
-}
-
-.upcoming {
-  margin: 0;
-  padding: 0.6rem 1rem;
-  border-radius: 1rem;
-  background: rgb(255 255 255 / 0.1);
-  font-size: 1rem;
-
-  strong { color: var(--accent); }
 }
 
 .controls {

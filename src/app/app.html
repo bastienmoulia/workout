@@ -13,16 +13,6 @@
   </button>
 </header>
 
-<div
-  class="series-bar"
-  role="progressbar"
-  aria-label="Progression de la série"
-  [attr.aria-valuenow]="seriesPercent()"
-  aria-valuemin="0"
-  aria-valuemax="100"
->
-  <div class="series-bar__fill" [style.transform]="'scaleX(' + seriesProgress() + ')'"></div>
-</div>
 <ol class="dots" aria-hidden="true">
   @for (item of program; track $index) {
     <li
@@ -93,11 +83,6 @@
     </div>
   }
 
-  @if (state().phase === 'exercise' && nextExercise(); as upcoming) {
-    <p class="upcoming">Ensuite&nbsp;: <strong>{{ upcoming.name }}</strong></p>
-  } @else if (state().phase === 'exercise') {
-    <p class="upcoming">Dernier exercice, à fond&nbsp;! 🔥</p>
-  }
 </main>
 
 @if (state().phase === 'finished') {
