@@ -23,41 +23,64 @@
 </ol>
 
 <main class="stage" aria-live="polite">
-  @for (key of [intervalKey()]; track key) {
-    <div class="interval" animate.enter="pop-in">
-      @switch (state().phase) {
-        @case ('idle') {
-          <p class="label">Prêt·e&nbsp;?</p>
-          <p class="emoji bounce" aria-hidden="true">{{ exercise().emoji }}</p>
-          <h2 class="name">{{ exercise().name }}</h2>
-          <p class="hint">{{ program.length }} exercices · {{ totalLabel }}</p>
-        }
-        @case ('preparation') {
-          <p class="label">Prépare-toi&nbsp;!</p>
-          <h2 class="name">{{ exercise().name }}</h2>
-        }
-        @case ('exercise') {
-          <p class="label">Exercice {{ state().index + 1 }}/{{ program.length }}</p>
-          <h2 class="name">{{ exercise().name }}</h2>
-        }
-        @case ('recovery') {
-          <p class="label">Récupération</p>
-          <p class="next-label">Prochain exercice</p>
-          <h2 class="name">{{ exercise().name }}</h2>
-        }
-        @case ('finished') {
-          <p class="label">Bravo&nbsp;!</p>
-          <p class="emoji trophy" aria-hidden="true">🏆</p>
-          <h2 class="name">Série terminée</h2>
+  @switch (state().phase) {
+    @case ('idle') {
+      <div class="interval" animate.enter="pop-in">
+        <p class="label">Prêt·e&nbsp;?</p>
+        <p class="emoji bounce" aria-hidden="true">{{ exercise().emoji }}</p>
+        <h2 class="name">{{ exercise().name }}</h2>
+        <p class="hint">{{ program.length }} exercices · {{ totalLabel }}</p>
+      </div>
+    }
+    @case ('preparation') {
+      <div class="interval">
+        <p class="label">Prépare-toi&nbsp;!</p>
+        <h2 class="name">{{ exercise().name }}</h2>
+      </div>
+    }
+    @case ('exercise') {
+      <div class="interval">
+        <p class="label">Exercice {{ state().index + 1 }}/{{ program.length }}</p>
+        <h2 class="name">{{ exercise().name }}</h2>
+      </div>
+    }
+    @case ('recovery') {
+      <div class="interval">
+        <p class="label">Récupération</p>
+      </div>
+    }
+    @case ('transition-preparation') {
+      <div class="interval">
+        <p class="label">Prépare-toi&nbsp;!</p>
+        <h2 class="name">{{ exercise().name }}</h2>
+      </div>
+    }
+    @case ('finished') {
+      <div class="interval" animate.enter="pop-in">
+        <p class="label">Bravo&nbsp;!</p>
+        <p class="emoji trophy" aria-hidden="true">🏆</p>
+        <h2 class="name">
+          {{
+            state().skipped
+              ? 'Série terminée — un ou plusieurs exercices ont été passés'
+              : 'Série terminée'
+          }}
+        </h2>
+        @if (!state().skipped) {
           <p class="hint">{{ program.length }} exercices en {{ totalLabel }} 💜</p>
         }
-      }
-    </div>
+      </div>
+    }
   }
 
   @if (state().phase !== 'idle' && state().phase !== 'finished') {
-    <div class="ring" [class.paused]="!state().running" [class.last-seconds]="seconds() <= 3">
-      <svg viewBox="0 0 280 280" aria-hidden="true">
+    <div
+      class="ring"
+      [class.paused]="!state().running"
+      [class.last-seconds]="seconds() <= 3"
+      [class.ring--rest]="state().phase === 'recovery'"
+    >
+      <svg class="ring__outline" viewBox="0 0 280 280" aria-hidden="true">
         <defs>
           <linearGradient id="ring-gradient" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0%" stop-color="var(--ring-from)" />
@@ -74,15 +97,23 @@
           [attr.stroke-dashoffset]="ringOffset()"
         />
       </svg>
-      @for (s of [seconds()]; track s) {
-        <span class="ring__seconds" animate.enter="tick-in" role="timer">{{ s }}</span>
-      }
+      <div class="ring__figure">
+        @if (state().phase === 'recovery') {
+          <app-exercise-animation [rest]="true" [paused]="!state().running" />
+        } @else if (gesture(); as currentGesture) {
+          <app-exercise-animation [definition]="currentGesture" [paused]="!state().running" />
+        } @else {
+          <span class="ring__unavailable">Animation indisponible</span>
+        }
+      </div>
+    </div>
+    <div class="timer" [class.paused]="!state().running">
+      <span class="ring__seconds" role="timer">{{ seconds() }}</span>
       @if (!state().running) {
         <span class="ring__paused">En pause</span>
       }
     </div>
   }
-
 </main>
 
 @if (state().phase === 'finished') {
@@ -104,23 +135,33 @@
     <small>Exercice</small>
   </button>
 
-  <button
-    type="button"
-    class="ctrl ctrl--main"
-    [class.is-running]="state().running"
-    (click)="togglePlay()"
-    [attr.aria-label]="
-      state().running ? 'Pause' : state().phase === 'finished' ? 'Recommencer' : 'Play'
-    "
-  >
-    @if (state().running) {
-      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="4" width="5" height="16" rx="1.5" /><rect x="14" y="4" width="5" height="16" rx="1.5" /></svg>
-    } @else if (state().phase === 'finished') {
-      <span class="ctrl__glyph" aria-hidden="true">↻</span>
-    } @else {
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z" /></svg>
-    }
-  </button>
+  <div class="controls__main">
+    <button
+      type="button"
+      class="ctrl ctrl--main"
+      [class.is-running]="state().running"
+      (click)="togglePlay()"
+      [attr.aria-label]="
+        state().running ? 'Pause' : state().phase === 'finished' ? 'Recommencer' : 'Play'
+      "
+    >
+      @if (state().running) {
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="5" y="4" width="5" height="16" rx="1.5" />
+          <rect x="14" y="4" width="5" height="16" rx="1.5" />
+        </svg>
+      } @else if (state().phase === 'finished') {
+        <span class="ctrl__glyph" aria-hidden="true">↻</span>
+      } @else {
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z" />
+        </svg>
+      }
+    </button>
+    <button type="button" class="ctrl ctrl--skip" (click)="skipExercise()" [disabled]="!canSkip()">
+      Passer
+    </button>
+  </div>
 
   <button
     type="button"

@@ -1,14 +1,12 @@
-import {
-  Component,
-  DestroyRef,
-  computed,
-  effect,
-  inject,
-  signal,
-  untracked,
-} from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { PROGRAM, SERIES_TOTAL_MS, EXERCISE_MS, PREPARATION_MS, RECOVERY_MS } from './workout/program';
+import {
+  PROGRAM,
+  SERIES_TOTAL_MS,
+  EXERCISE_MS,
+  PREPARATION_MS,
+  RECOVERY_MS,
+} from './workout/program';
 import {
   SeriesEvent,
   SeriesState,
@@ -17,9 +15,12 @@ import {
   phaseDuration,
   resetExercise,
   resetSeries,
+  skipExercise as skipSeriesExercise,
   tick,
   togglePlay,
 } from './workout/series';
+import { ExerciseAnimation } from './workout/exercise-animation';
+import { gestureFor } from './workout/gestures';
 import { SoundService } from './workout/sound.service';
 import { StorageService } from './workout/storage.service';
 import { WakeLockService } from './workout/wake-lock.service';
@@ -29,6 +30,7 @@ const RING_RADIUS = 120;
 
 @Component({
   selector: 'app-root',
+  imports: [ExerciseAnimation],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   host: { '[class]': '"phase-" + state().phase' },
@@ -57,8 +59,10 @@ export class App {
     return this.ringCircumference * done;
   });
   protected readonly totalLabel = formatDuration(SERIES_TOTAL_MS);
-  /** Changes on every interval so its content re-animates. */
-  protected readonly intervalKey = computed(() => `${this.state().phase}-${this.state().index}`);
+  protected readonly gesture = computed(() => gestureFor(this.exercise().name));
+  protected readonly canSkip = computed(() =>
+    ['preparation', 'exercise', 'transition-preparation'].includes(this.state().phase),
+  );
 
   constructor() {
     let last = performance.now();
@@ -104,6 +108,10 @@ export class App {
     this.state.update(resetExercise);
   }
 
+  protected skipExercise(): void {
+    this.state.update(skipSeriesExercise);
+  }
+
   protected askResetSeries(): void {
     const { phase } = this.state();
     if (hasStarted(this.state()) && phase !== 'finished') {
@@ -129,7 +137,7 @@ export class App {
     for (const event of events) {
       if (event.type === 'countdown') this.sound.countdown();
       else if (event.type === 'finished') this.sound.finished();
-      else this.sound.go();
+      else if (event.phase !== 'transition-preparation') this.sound.go();
     }
   }
 }
