@@ -11,6 +11,7 @@ describe('App', () => {
 
   afterEach(() => {
     window.matchMedia = originalMatchMedia;
+    vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
 
@@ -72,6 +73,51 @@ describe('App', () => {
 
     expect(Number(torso.getAttribute('y1'))).toBeGreaterThan(155);
     expect(Number(backLeg.getAttribute('y2'))).toBeCloseTo(227, 0);
+  });
+
+  it('keeps both feet grounded while the squat lowers and rises', async () => {
+    localStorage.setItem(
+      'workout.series',
+      JSON.stringify({ phase: 'exercise', index: 8, remainingMs: 30_000 }),
+    );
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const callbacks = new Map<number, FrameRequestCallback>();
+    let requestId = 0;
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      callbacks.set(++requestId, callback);
+      return requestId;
+    });
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation((id) => {
+      callbacks.delete(id);
+    });
+    vi.spyOn(window.performance, 'now').mockReturnValue(0);
+
+    el.querySelector<HTMLButtonElement>('.ctrl--main')!.click();
+    fixture.detectChanges();
+
+    const frame = (time: number) => {
+      const scheduled = [...callbacks.values()];
+      callbacks.clear();
+      expect(scheduled.length).toBeGreaterThan(0);
+      scheduled.forEach((callback) => callback(time));
+      fixture.detectChanges();
+      const torso = el.querySelector('app-exercise-animation .body')!;
+      const backFoot = el.querySelectorAll('app-exercise-animation .limb--back')[3];
+      const frontFoot = el.querySelectorAll('app-exercise-animation .limb--front')[3];
+      expect(Number(backFoot.getAttribute('y2'))).toBeCloseTo(227, 0);
+      expect(Number(frontFoot.getAttribute('y2'))).toBeCloseTo(227, 0);
+      return Number(torso.getAttribute('y1'));
+    };
+
+    const descending = frame(900);
+    const lowest = frame(1800);
+    const ascending = frame(2700);
+    expect(descending).toBeGreaterThan(145);
+    expect(lowest).toBeGreaterThan(descending);
+    expect(ascending).toBeLessThan(lowest);
+    fixture.destroy();
   });
 
   it('skips to the next preparation without resuming a paused series', async () => {

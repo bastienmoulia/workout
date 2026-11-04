@@ -7,6 +7,11 @@ interface Point {
   readonly y: number;
 }
 
+const STANDING_HIP_Y = 145;
+const GROUND_Y = 227;
+const UPPER_LEG_LENGTH = 43;
+const LOWER_LEG_LENGTH = 39;
+
 @Component({
   selector: 'app-exercise-animation',
   template: `
@@ -201,7 +206,12 @@ export class ExerciseAnimation {
   });
 
   protected readonly figure = computed(() =>
-    makeFigure(this.pose(), this.rest(), this.definition()?.view === 'profil'),
+    makeFigure(
+      this.pose(),
+      this.rest(),
+      this.definition()?.view === 'profil',
+      this.definition()?.groundSupport ?? false,
+    ),
   );
 
   constructor() {
@@ -257,7 +267,12 @@ function interpolatePose(definition: GestureDefinition, time: number): PoseAngle
   ) as PoseAngles;
 }
 
-function makeFigure(pose: PoseAngles | null, rest: boolean, profile: boolean) {
+function makeFigure(
+  pose: PoseAngles | null,
+  rest: boolean,
+  profile: boolean,
+  groundSupport: boolean,
+) {
   const neutral: PoseAngles = {
     brasGauche: -18,
     brasDroit: 18,
@@ -272,7 +287,18 @@ function makeFigure(pose: PoseAngles | null, rest: boolean, profile: boolean) {
     saut: 0,
   };
   const values = rest || !pose ? neutral : pose;
-  const hip = { x: 120, y: 145 - values.saut };
+  const hipY =
+    groundSupport && !rest
+      ? GROUND_Y -
+        Math.max(
+          legVerticalReach(values.jambeGauche, values.genouGauche),
+          legVerticalReach(values.jambeDroite, values.genouDroit),
+        )
+      : STANDING_HIP_Y;
+  const hip = {
+    x: 120,
+    y: hipY - values.saut,
+  };
   const torsoRadians = (values.buste * Math.PI) / 180;
   const shoulder = {
     x: hip.x + Math.sin(torsoRadians) * (profile ? 16 : 48),
@@ -287,13 +313,18 @@ function makeFigure(pose: PoseAngles | null, rest: boolean, profile: boolean) {
   const handRight = fromAngle(elbowRight, values.brasDroit + values.coudeDroit, 29);
   const hipLeft = { x: hip.x - (profile ? 1 : 5), y: hip.y };
   const hipRight = { x: hip.x + (profile ? 1 : 5), y: hip.y };
-  const kneeLeft = fromAngle(hipLeft, values.jambeGauche, 43);
-  const kneeRight = fromAngle(hipRight, values.jambeDroite, 43);
-  const footLeft = fromAngle(kneeLeft, values.jambeGauche + values.genouGauche, 39, values.pointes);
+  const kneeLeft = fromAngle(hipLeft, values.jambeGauche, UPPER_LEG_LENGTH);
+  const kneeRight = fromAngle(hipRight, values.jambeDroite, UPPER_LEG_LENGTH);
+  const footLeft = fromAngle(
+    kneeLeft,
+    values.jambeGauche + values.genouGauche,
+    LOWER_LEG_LENGTH,
+    values.pointes,
+  );
   const footRight = fromAngle(
     kneeRight,
     values.jambeDroite + values.genouDroit,
-    39,
+    LOWER_LEG_LENGTH,
     values.pointes,
   );
   return {
@@ -311,6 +342,14 @@ function makeFigure(pose: PoseAngles | null, rest: boolean, profile: boolean) {
     footLeft,
     footRight,
   };
+}
+
+function legVerticalReach(legAngle: number, kneeAngle: number): number {
+  const radians = Math.PI / 180;
+  return (
+    Math.cos(legAngle * radians) * UPPER_LEG_LENGTH +
+    Math.cos((legAngle + kneeAngle) * radians) * LOWER_LEG_LENGTH
+  );
 }
 
 function fromAngle(origin: Point, angle: number, length: number, lift = 0): Point {

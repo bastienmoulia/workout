@@ -26,6 +26,7 @@ export interface GestureDefinition {
   readonly exercise: string;
   readonly view: 'face' | 'profil';
   readonly description: string;
+  readonly groundSupport: boolean;
   readonly reducedMotionPose: number;
   readonly poses: readonly GesturePose[];
   readonly durationMs: number;
@@ -110,6 +111,7 @@ function parseDefinition(
   const exercise = value['exercice'];
   const view = value['vue'];
   const description = value['description'];
+  const groundSupport = value['appuiAuSol'];
   const reducedMotionPose = value['poseReduite'];
   const rawPoses = value['poses'];
   if (
@@ -117,6 +119,7 @@ function parseDefinition(
     (view !== 'face' && view !== 'profil') ||
     typeof description !== 'string' ||
     description.trim().length === 0 ||
+    (groundSupport !== undefined && typeof groundSupport !== 'boolean') ||
     typeof reducedMotionPose !== 'number' ||
     !Number.isInteger(reducedMotionPose) ||
     !Array.isArray(rawPoses) ||
@@ -168,6 +171,7 @@ function parseDefinition(
     exercise,
     view,
     description,
+    groundSupport: groundSupport === true,
     reducedMotionPose,
     poses,
     durationMs: poses.reduce((total, pose) => total + pose.durationMs, 0),

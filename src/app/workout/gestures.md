@@ -9,6 +9,7 @@ Toutes les animations sont définies dans [`gestures.json`](./gestures.json). Le
 - `animations` contient une définition par exercice. La valeur de `exercice` doit correspondre exactement à un nom de `program.ts`.
 - `vue` choisit la vue `face` ou `profil` adaptée au mouvement.
 - `description` est le texte visible avec le mouvement réduit et lu par les lecteurs d'écran.
+- `appuiAuSol` est facultatif. Avec `true`, le bassin s'ajuste pour garder le pied le plus bas au sol pendant la boucle ; pour garder les deux pieds au sol, utiliser des jambes symétriques. `saut` et `pointes` peuvent toujours les soulever.
 - `poseReduite` est l'index, à partir de zéro, de la pose représentative à afficher lorsque le système réduit les animations.
 - `poses` est une suite de poses. `dureeMs` est le temps de transition vers la pose suivante ; la dernière pose revient à la première. La somme des durées donne la durée de la boucle, sans limite de cinq secondes.
 

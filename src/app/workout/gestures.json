@@ -275,6 +275,7 @@
       "exercice": "Squats avec battements d'ailes",
       "vue": "face",
       "description": "Descends en squat avec les bras baissés, puis relève-toi en levant les bras sur les côtés.",
+      "appuiAuSol": true,
       "poseReduite": 1,
       "poses": [
         { "position": "neutre", "dureeMs": 1800 },
