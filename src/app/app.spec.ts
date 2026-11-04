@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
 import { AppUpdateService } from './app-update.service';
+import { SoundService } from './workout/sound.service';
 
 describe('App', () => {
   const originalMatchMedia = window.matchMedia;
@@ -23,6 +24,9 @@ describe('App', () => {
     const el = fixture.nativeElement as HTMLElement;
     expect(el.querySelector('.name')?.textContent).toContain('Levés de bras + pointes de pieds');
     expect(el.querySelector('.hint')?.textContent).toContain('11 min 35');
+    expect(el.querySelector('header')).toBeNull();
+    expect(el.querySelector('[aria-label="Couper le son"]')).toBeNull();
+    expect(el.querySelector('[aria-label="Activer le son"]')).toBeNull();
   });
 
   it('starts the preparation countdown on play', async () => {
@@ -166,6 +170,7 @@ describe('App', () => {
   });
 
   it('plays the finish signal when the last exercise is skipped', async () => {
+    localStorage.setItem('workout.sound', 'off');
     const frequencies: number[] = [];
     class FakeAudioContext {
       state = 'running';
@@ -206,6 +211,27 @@ describe('App', () => {
     expect(fixture.nativeElement.textContent).toContain(
       'Série terminée — un ou plusieurs exercices ont été passés',
     );
+  });
+
+  it('plays countdown and phase signals regardless of the old mute preference', async () => {
+    localStorage.setItem('workout.sound', 'off');
+    const sound = TestBed.inject(SoundService);
+    const countdown = vi.spyOn(sound, 'countdown');
+    const go = vi.spyOn(sound, 'go');
+    vi.spyOn(sound, 'unlock').mockResolvedValue();
+    vi.useFakeTimers();
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    fixture.nativeElement.querySelector('.ctrl--main').click();
+    vi.advanceTimersByTime(5_000);
+    fixture.detectChanges();
+
+    expect(countdown).toHaveBeenCalledTimes(3);
+    expect(go).toHaveBeenCalledOnce();
+    expect(fixture.nativeElement.querySelector('.label').textContent).toContain('Exercice 1/');
+    fixture.destroy();
+    vi.useRealTimers();
   });
 
   it('asks for confirmation before resetting a started series', async () => {
