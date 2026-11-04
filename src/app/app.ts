@@ -25,9 +25,12 @@ import { gestureFor } from './workout/gestures';
 import { SoundService } from './workout/sound.service';
 import { StorageService } from './workout/storage.service';
 import { WakeLockService } from './workout/wake-lock.service';
+import { AppUpdateService } from './app-update.service';
 
 const TICK_MS = 100;
 const RING_RADIUS = 120;
+const UPDATE_RELOAD_DELAY_MS = 1_500;
+const UPDATE_RETRY_DELAY_MS = 60_000;
 
 @Component({
   selector: 'app-root',
@@ -41,6 +44,7 @@ export class App {
   private readonly storage = inject(StorageService);
   private readonly wakeLock = inject(WakeLockService);
   private readonly document = inject(DOCUMENT);
+  private readonly appUpdate = inject(AppUpdateService);
 
   protected readonly program = PROGRAM;
   protected readonly ringCircumference = 2 * Math.PI * RING_RADIUS;
@@ -90,6 +94,24 @@ export class App {
     effect(() => {
       const running = this.state().running;
       untracked(() => (running ? this.wakeLock.keepAwake() : this.wakeLock.allowSleep()));
+    });
+    effect((onCleanup) => {
+      if (!this.appUpdate.reloadNeeded() || this.state().running || this.confirmingReset()) return;
+
+      const reloadWhenSafe = () => {
+        const state = this.state();
+        if (state.running || this.confirmingReset()) return;
+        if (!this.storage.saveSeries(state) && state.phase !== 'idle') {
+          console.error('Mise à jour reportée : impossible de sauvegarder la progression.');
+          timer = setTimeout(reloadWhenSafe, UPDATE_RETRY_DELAY_MS);
+          return;
+        }
+        this.appUpdate.applyUpdate();
+      };
+
+      // Allow the finish sound to play and cancel the reload if the series resumes.
+      let timer = setTimeout(reloadWhenSafe, UPDATE_RELOAD_DELAY_MS);
+      onCleanup(() => clearTimeout(timer));
     });
   }
 
