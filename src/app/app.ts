@@ -10,6 +10,7 @@ import {
 import {
   SeriesEvent,
   SeriesState,
+  canSkipExercise,
   hasStarted,
   pause,
   phaseDuration,
@@ -60,9 +61,7 @@ export class App {
   });
   protected readonly totalLabel = formatDuration(SERIES_TOTAL_MS);
   protected readonly gesture = computed(() => gestureFor(this.exercise().name));
-  protected readonly canSkip = computed(() =>
-    ['preparation', 'exercise', 'transition-preparation'].includes(this.state().phase),
-  );
+  protected readonly canSkip = computed(() => canSkipExercise(this.state()));
 
   constructor() {
     let last = performance.now();
@@ -97,7 +96,7 @@ export class App {
   }
 
   protected togglePlay(): void {
-    this.sound.unlock();
+    void this.sound.unlock();
     if (this.state().phase === 'finished') {
       this.state.set(resetSeries());
     }
@@ -109,7 +108,15 @@ export class App {
   }
 
   protected skipExercise(): void {
-    this.state.update(skipSeriesExercise);
+    const previous = this.state();
+    const next = skipSeriesExercise(previous);
+    this.state.set(next);
+    if (previous.phase !== 'finished' && next.phase === 'finished' && this.soundEnabled()) {
+      void this.sound
+        .unlock()
+        .then(() => this.play([{ type: 'finished' }]))
+        .catch((error) => console.error('Impossible de jouer le signal de fin.', error));
+    }
   }
 
   protected askResetSeries(): void {
@@ -128,7 +135,7 @@ export class App {
   }
 
   protected toggleSound(): void {
-    this.sound.unlock();
+    void this.sound.unlock();
     this.soundEnabled.update((enabled) => !enabled);
   }
 

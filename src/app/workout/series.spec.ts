@@ -36,11 +36,11 @@ describe('series', () => {
   });
 
   it('pauses and resumes exactly where it was', () => {
-    const paused = pause(running({ phase: 'recovery', index: 3, remainingMs: 4200 }));
+    const paused = pause(running({ phase: 'recovery', index: 3, remainingMs: 8200 }));
     expect(paused).toEqual({
       phase: 'recovery',
       index: 3,
-      remainingMs: 4200,
+      remainingMs: 8200,
       running: false,
       skipped: false,
     });
@@ -102,7 +102,7 @@ describe('series', () => {
   });
 
   it('during recovery, resets back to the exercise just finished', () => {
-    const state = running({ phase: 'recovery', index: 5, remainingMs: 3000 });
+    const state = running({ phase: 'recovery', index: 5, remainingMs: 8000 });
     expect(resetExercise(state)).toEqual({
       phase: 'exercise',
       index: 4,
@@ -193,5 +193,10 @@ describe('series', () => {
     expect(restore(null)).toEqual(INITIAL_STATE);
     expect(restore({ phase: 'exercise', index: 42, remainingMs: 1 })).toEqual(INITIAL_STATE);
     expect(restore({ phase: 'recovery', index: 1, remainingMs: 99_999 })).toEqual(INITIAL_STATE);
+    expect(restore({ phase: 'transition-preparation', index: 2, remainingMs: 8000 })).toEqual(
+      INITIAL_STATE,
+    );
+    expect(restore({ phase: 'recovery', index: 0, remainingMs: 8000 })).toEqual(INITIAL_STATE);
+    expect(restore({ phase: 'exercise', index: 2, remainingMs: NaN })).toEqual(INITIAL_STATE);
   });
 });

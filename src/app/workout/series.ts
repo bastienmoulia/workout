@@ -81,14 +81,16 @@ export function resetExercise(state: SeriesState): SeriesState {
   }
 }
 
+export function canSkipExercise(state: SeriesState): boolean {
+  return (
+    state.phase === 'preparation' ||
+    state.phase === 'exercise' ||
+    state.phase === 'transition-preparation'
+  );
+}
+
 export function skipExercise(state: SeriesState): SeriesState {
-  if (
-    state.phase !== 'preparation' &&
-    state.phase !== 'exercise' &&
-    state.phase !== 'transition-preparation'
-  ) {
-    return state;
-  }
+  if (!canSkipExercise(state)) return state;
   if (state.index >= PROGRAM.length - 1) {
     return { ...state, phase: 'finished', remainingMs: 0, running: false, skipped: true };
   }
@@ -189,8 +191,12 @@ export function restore(raw: unknown): SeriesState {
     index < 0 ||
     index >= PROGRAM.length ||
     typeof remainingMs !== 'number' ||
+    !Number.isFinite(remainingMs) ||
     remainingMs < 0 ||
-    remainingMs > phaseDuration(phase as Phase)
+    remainingMs > phaseDuration(phase as Phase) ||
+    (phase === 'transition-preparation' && remainingMs > PREPARATION_MS) ||
+    ((phase === 'recovery' || phase === 'transition-preparation') && index === 0) ||
+    ((phase === 'idle' || phase === 'preparation') && index !== 0)
   ) {
     return INITIAL_STATE;
   }
