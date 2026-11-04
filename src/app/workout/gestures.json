@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 1,
+  "positions": {
+    "neutre": {
+      "brasGauche": 0,
+      "brasDroit": 0,
+      "coudeGauche": 0,
+      "coudeDroit": 0,
+      "jambeGauche": -6,
+      "jambeDroite": 6,
+      "genouGauche": 0,
+      "genouDroit": 0,
+      "buste": 0,
+      "pointes": 0,
+      "saut": 0
+    },
+    "bras-hauts": {
+      "brasGauche": -180,
+      "brasDroit": 180,
+      "coudeGauche": 0,
+      "coudeDroit": 0,
+      "jambeGauche": -6,
+      "jambeDroite": 6,
+      "genouGauche": 0,
+      "genouDroit": 0,
+      "buste": 0,
+      "pointes": 12,
+      "saut": 0
+    },
+    "ailes": {
+      "brasGauche": -180,
+      "brasDroit": 180,
+      "coudeGauche": 0,
+      "coudeDroit": 0,
+      "jambeGauche": -6,
+      "jambeDroite": 6,
+      "genouGauche": 0,
+      "genouDroit": 0,
+      "buste": 0,
+      "pointes": 0,
+      "saut": 0
+    },
+    "accroupi": {
+      "brasGauche": -15,
+      "brasDroit": 15,
+      "coudeGauche": 0,
+      "coudeDroit": 0,
+      "jambeGauche": -40,
+      "jambeDroite": 40,
+      "genouGauche": 78,
+      "genouDroit": -78,
+      "buste": 0,
+      "pointes": 0,
+      "saut": 0
+    },
+    "garde": {
+      "brasGauche": 15,
+      "brasDroit": 20,
+      "coudeGauche": 130,
+      "coudeDroit": 125,
+      "jambeGauche": 0,
+      "jambeDroite": 0,
+      "genouGauche": 0,
+      "genouDroit": 0,
+      "buste": 0,
+      "pointes": 0,
+      "saut": 0
+    },
+    "fente-centre": {
+      "brasGauche": 0,
+      "brasDroit": 0,
+      "coudeGauche": 0,
+      "coudeDroit": 0,
+      "jambeGauche": -78.4,
+      "jambeDroite": 78.4,
+      "genouGauche": 88.9,
+      "genouDroit": -88.9,
+      "buste": 0,
+      "pointes": 0,
+      "saut": 0
+    },
+    "fente-gauche": {
+      "brasGauche": 0,
+      "brasDroit": 0,
+      "coudeGauche": 0,
+      "coudeDroit": 0,
+      "jambeGauche": -55,
+      "jambeDroite": 55,
+      "genouGauche": 110,
+      "genouDroit": 0,
+      "buste": 0,
+      "bassinLateral": -32,
+      "pointes": 0,
+      "saut": 0
+    },
+    "fente-droite": {
+      "brasGauche": 0,
+      "brasDroit": 0,
+      "coudeGauche": 0,
+      "coudeDroit": 0,
+      "jambeGauche": -55,
+      "jambeDroite": 55,
+      "genouGauche": 0,
+      "genouDroit": -110,
+      "buste": 0,
+      "bassinLateral": 32,
+      "pointes": 0,
+      "saut": 0
+    }
+  },
+  "animations": [
+    {
+      "exercice": "Levés de bras + pointes de pieds",
+      "vue": "face",
+      "description": "Lève les deux bras au-dessus de la tête en montant sur la pointe des pieds, puis redescends.",
+      "appuiAuSol": true,
+      "poseReduite": 1,
+      "poses": [
+        { "position": "neutre", "dureeMs": 1300 },
+        { "position": "bras-hauts", "dureeMs": 1300 }
+      ]
+    },
+    {
+      "exercice": "Balancements de bras de haut en bas",
+      "vue": "face",
+      "description": "Balance un bras devant toi jusqu'au-dessus de la tête pendant que l'autre descend, puis inverse les bras.",
+      "appuiAuSol": true,
+      "poseReduite": 0,
+      "poses": [
+        {
+          "brasGauche": -180,
+          "brasDroit": 0,
+          "dureeMs": 1200
+        },
+        {
+          "brasGauche": 0,
+          "brasDroit": 180,
+          "dureeMs": 1200
+        }
+      ]
+    },
+    {
+      "exercice": "Rotations du buste",
+      "vue": "face",
+      "description": "Garde le bassin stable et les coudes fléchis. Tourne le buste à gauche puis à droite sans l'incliner.",
+      "appuiAuSol": true,
+      "poseReduite": 0,
+      "poses": [
+        {
+          "rotation": -50,
+          "brasGauche": -20,
+          "brasDroit": 20,
+          "coudeGauche": -100,
+          "coudeDroit": 100,
+          "genouGauche": 14,
+          "genouDroit": -14,
+          "dureeMs": 1500
+        },
+        {
+          "rotation": 50,
+          "brasGauche": -20,
+          "brasDroit": 20,
+          "coudeGauche": -100,
+          "coudeDroit": 100,
+          "genouGauche": 14,
+          "genouDroit": -14,
+          "dureeMs": 1500
+        }
+      ]
+    },
+    {
+      "exercice": "Swing de golf",
+      "vue": "face",
+      "description": "Garde les mains séparées et les bras pointés vers le haut. Déplace-les ensemble d'un côté puis de l'autre ; une jambe fléchit et la jambe arrière reste tendue.",
+      "appuiAuSol": true,
+      "poseReduite": 0,
+      "poses": [
+        {
+          "buste": -28,
+          "brasGauche": -145,
+          "brasDroit": -118,
+          "coudeGauche": -18,
+          "coudeDroit": -18,
+          "jambeGauche": -38,
+          "jambeDroite": 38,
+          "genouGauche": 76,
+          "dureeMs": 2200
+        },
+        {
+          "buste": 28,
+          "brasGauche": 118,
+          "brasDroit": 145,
+          "coudeGauche": 18,
+          "coudeDroit": 18,
+          "jambeGauche": -38,
+          "jambeDroite": 38,
+          "genouDroit": -76,
+          "dureeMs": 2200
+        }
+      ]
+    },
+    {
+      "exercice": "Battements d'ailes",
+      "vue": "face",
+      "description": "Lève les bras tendus sur les côtés jusqu'au-dessus de la tête, puis redescends-les le long du corps.",
+      "appuiAuSol": true,
+      "poseReduite": 1,
+      "poses": [
+        { "position": "neutre", "dureeMs": 1100 },
+        { "position": "ailes", "dureeMs": 1100 }
+      ]
+    },
+    {
+      "exercice": "Montées de genoux",
+      "vue": "profil",
+      "description": "Pars les deux pieds au sol. Lève un genou devant toi et claque les mains au-dessus, bras tendus. Repose le pied et recommence avec l'autre genou.",
+      "appuiAuSol": true,
+      "poseReduite": 1,
+      "poses": [
+        {
+          "jambeGauche": 0,
+          "jambeDroite": 0,
+          "dureeMs": 700
+        },
+        {
+          "jambeGauche": 90,
+          "jambeDroite": 0,
+          "genouGauche": -90,
+          "brasGauche": 47,
+          "brasDroit": 47,
+          "dureeMs": 700
+        },
+        {
+          "jambeGauche": 0,
+          "jambeDroite": 0,
+          "dureeMs": 700
+        },
+        {
+          "jambeGauche": 0,
+          "jambeDroite": 90,
+          "genouDroit": -90,
+          "brasGauche": 47,
+          "brasDroit": 47,
+          "dureeMs": 700
+        }
+      ]
+    },
+    {
+      "exercice": "Fentes latérales avec toucher du pied opposé",
+      "vue": "face",
+      "description": "Installe la fente : une jambe fléchie, l'autre tendue. Touche le pied opposé avec le bras du côté tendu ; replie l'autre coude en arrière. Passe par le milieu sans te relever complètement, puis inverse.",
+      "appuiAuSol": true,
+      "poseReduite": 2,
+      "poses": [
+        { "position": "fente-centre", "dureeMs": 1200 },
+        { "position": "fente-gauche", "dureeMs": 700 },
+        {
+          "position": "fente-gauche",
+          "buste": -79,
+          "brasGauche": 110,
+          "brasDroit": 20.4,
+          "coudeGauche": -135,
+          "dureeMs": 1100
+        },
+        { "position": "fente-centre", "dureeMs": 1200 },
+        { "position": "fente-droite", "dureeMs": 700 },
+        {
+          "position": "fente-droite",
+          "buste": 79,
+          "brasGauche": -20.4,
+          "brasDroit": -110,
+          "coudeDroit": 135,
+          "dureeMs": 1100
+        }
+      ]
+    },
+    {
+      "exercice": "Extensions des mollets",
+      "vue": "profil",
+      "description": "Pars en garde, coudes pliés et poings devant le torse. Monte sur les pointes, donne deux coups de poing rapides en ramenant chaque poing en garde, puis repose les talons.",
+      "appuiAuSol": true,
+      "poseReduite": 1,
+      "poses": [
+        { "position": "garde", "dureeMs": 400 },
+        { "position": "garde", "pointes": 12, "dureeMs": 130 },
+        {
+          "position": "garde",
+          "brasGauche": 90,
+          "coudeGauche": 0,
+          "pointes": 12,
+          "dureeMs": 130
+        },
+        { "position": "garde", "pointes": 12, "dureeMs": 130 },
+        {
+          "position": "garde",
+          "brasDroit": 90,
+          "coudeDroit": 0,
+          "pointes": 12,
+          "dureeMs": 130
+        },
+        { "position": "garde", "pointes": 12, "dureeMs": 400 }
+      ]
+    },
+    {
+      "exercice": "Squats avec battements d'ailes",
+      "vue": "face",
+      "description": "Descends en squat avec les bras baissés, puis relève-toi en levant les bras sur les côtés jusqu'au-dessus de la tête.",
+      "appuiAuSol": true,
+      "poseReduite": 1,
+      "poses": [
+        { "position": "neutre", "dureeMs": 1800 },
+        { "position": "accroupi", "dureeMs": 1800 },
+        { "position": "ailes", "dureeMs": 1800 }
+      ]
+    },
+    {
+      "exercice": "Sautillements",
+      "vue": "profil",
+      "description": "Enchaîne rapidement de petits sauts sur place, les pieds joints. Décolle les deux pieds et amortis chaque réception.",
+      "appuiAuSol": true,
+      "poseReduite": 0,
+      "poses": [
+        {
+          "jambeGauche": 0,
+          "jambeDroite": 0,
+          "dureeMs": 180
+        },
+        {
+          "jambeGauche": 0,
+          "jambeDroite": 0,
+          "genouGauche": 8,
+          "genouDroit": 8,
+          "pointes": 6,
+          "saut": 18,
+          "dureeMs": 180
+        }
+      ]
+    }
+  ]
+}

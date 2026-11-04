@@ -1,13 +1,15 @@
 import { EXERCISE_MS, PREPARATION_MS, PROGRAM, RECOVERY_MS } from './program';
 
-export type Phase = 'idle' | 'preparation' | 'exercise' | 'recovery' | 'finished';
+export type Phase =
+  'idle' | 'preparation' | 'exercise' | 'recovery' | 'transition-preparation' | 'finished';
 
 export interface SeriesState {
   readonly phase: Phase;
-  /** Exercise in progress, or the upcoming one during preparation and recovery. */
+  /** Exercise in progress, or the upcoming one during preparation and transition. */
   readonly index: number;
   readonly remainingMs: number;
   readonly running: boolean;
+  readonly skipped: boolean;
 }
 
 export type SeriesEvent =
@@ -20,6 +22,7 @@ export const INITIAL_STATE: SeriesState = {
   index: 0,
   remainingMs: PREPARATION_MS,
   running: false,
+  skipped: false,
 };
 
 const COUNTDOWN_SECONDS = 3;
@@ -32,6 +35,7 @@ export function phaseDuration(phase: Phase): number {
     case 'exercise':
       return EXERCISE_MS;
     case 'recovery':
+    case 'transition-preparation':
       return RECOVERY_MS;
     case 'finished':
       return 0;
@@ -43,7 +47,7 @@ export function play(state: SeriesState): SeriesState {
     case 'finished':
       return state;
     case 'idle':
-      return { phase: 'preparation', index: 0, remainingMs: PREPARATION_MS, running: true };
+      return { ...state, phase: 'preparation', remainingMs: PREPARATION_MS, running: true };
     default:
       return { ...state, running: true };
   }
@@ -62,12 +66,41 @@ export function resetExercise(state: SeriesState): SeriesState {
     case 'exercise':
       return { ...state, remainingMs: EXERCISE_MS, running: false };
     case 'recovery':
-      return { phase: 'exercise', index: state.index - 1, remainingMs: EXERCISE_MS, running: false };
+    case 'transition-preparation':
+      return {
+        ...state,
+        phase: 'exercise',
+        index: state.index - 1,
+        remainingMs: EXERCISE_MS,
+        running: false,
+      };
     case 'preparation':
       return { ...state, remainingMs: PREPARATION_MS, running: false };
     default:
       return state;
   }
+}
+
+export function canSkipExercise(state: SeriesState): boolean {
+  return (
+    state.phase === 'preparation' ||
+    state.phase === 'exercise' ||
+    state.phase === 'transition-preparation'
+  );
+}
+
+export function skipExercise(state: SeriesState): SeriesState {
+  if (!canSkipExercise(state)) return state;
+  if (state.index >= PROGRAM.length - 1) {
+    return { ...state, phase: 'finished', remainingMs: 0, running: false, skipped: true };
+  }
+  return {
+    ...state,
+    phase: 'transition-preparation',
+    index: state.index + 1,
+    remainingMs: PREPARATION_MS,
+    skipped: true,
+  };
 }
 
 export function resetSeries(): SeriesState {
@@ -87,6 +120,7 @@ function next(state: SeriesState): SeriesState {
         ? { ...state, phase: 'finished', remainingMs: 0, running: false }
         : { ...state, phase: 'recovery', index: state.index + 1, remainingMs: RECOVERY_MS };
     case 'recovery':
+    case 'transition-preparation':
       return { ...state, phase: 'exercise', remainingMs: EXERCISE_MS };
     default:
       return state;
@@ -104,7 +138,15 @@ export function tick(
   let current = state;
   let budget = elapsedMs;
   while (current.running && budget > 0) {
-    const consumed = Math.min(budget, current.remainingMs);
+    if (current.phase === 'recovery' && current.remainingMs <= RECOVERY_MS / 2) {
+      current = { ...current, phase: 'transition-preparation' };
+      events.push({ type: 'phase', phase: current.phase });
+      continue;
+    }
+
+    const untilBoundary =
+      current.phase === 'recovery' ? current.remainingMs - RECOVERY_MS / 2 : current.remainingMs;
+    const consumed = Math.min(budget, untilBoundary);
     const before = Math.ceil(current.remainingMs / 1000);
     const remainingMs = current.remainingMs - consumed;
     const after = Math.ceil(remainingMs / 1000);
@@ -114,7 +156,10 @@ export function tick(
     budget -= consumed;
     current = { ...current, remainingMs };
 
-    if (remainingMs <= 0) {
+    if (current.phase === 'recovery' && remainingMs <= RECOVERY_MS / 2) {
+      current = { ...current, phase: 'transition-preparation' };
+      events.push({ type: 'phase', phase: current.phase });
+    } else if (remainingMs <= 0) {
       current = next(current);
       events.push(
         current.phase === 'finished'
@@ -129,8 +174,16 @@ export function tick(
 /** Restores a persisted series, always paused. Falls back to the initial state on invalid data. */
 export function restore(raw: unknown): SeriesState {
   if (typeof raw !== 'object' || raw === null) return INITIAL_STATE;
-  const { phase, index, remainingMs } = raw as Record<string, unknown>;
-  const phases: readonly Phase[] = ['idle', 'preparation', 'exercise', 'recovery', 'finished'];
+  const { phase: rawPhase, index, remainingMs, skipped } = raw as Record<string, unknown>;
+  const phases: readonly Phase[] = [
+    'idle',
+    'preparation',
+    'exercise',
+    'recovery',
+    'transition-preparation',
+    'finished',
+  ];
+  let phase = rawPhase;
   if (
     !phases.includes(phase as Phase) ||
     typeof index !== 'number' ||
@@ -138,10 +191,23 @@ export function restore(raw: unknown): SeriesState {
     index < 0 ||
     index >= PROGRAM.length ||
     typeof remainingMs !== 'number' ||
+    !Number.isFinite(remainingMs) ||
     remainingMs < 0 ||
-    remainingMs > phaseDuration(phase as Phase)
+    remainingMs > phaseDuration(phase as Phase) ||
+    (phase === 'transition-preparation' && remainingMs > PREPARATION_MS) ||
+    ((phase === 'recovery' || phase === 'transition-preparation') && index === 0) ||
+    ((phase === 'idle' || phase === 'preparation') && index !== 0)
   ) {
     return INITIAL_STATE;
   }
-  return { phase: phase as Phase, index, remainingMs, running: false };
+  if (phase === 'recovery' && remainingMs <= RECOVERY_MS / 2) {
+    phase = 'transition-preparation';
+  }
+  return {
+    phase: phase as Phase,
+    index,
+    remainingMs,
+    running: false,
+    skipped: skipped === true,
+  };
 }

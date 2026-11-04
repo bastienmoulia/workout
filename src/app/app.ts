@@ -1,25 +1,27 @@
-import {
-  Component,
-  DestroyRef,
-  computed,
-  effect,
-  inject,
-  signal,
-  untracked,
-} from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import { PROGRAM, SERIES_TOTAL_MS, EXERCISE_MS, PREPARATION_MS, RECOVERY_MS } from './workout/program';
+import {
+  PROGRAM,
+  SERIES_TOTAL_MS,
+  EXERCISE_MS,
+  PREPARATION_MS,
+  RECOVERY_MS,
+} from './workout/program';
 import {
   SeriesEvent,
   SeriesState,
+  canSkipExercise,
   hasStarted,
   pause,
   phaseDuration,
   resetExercise,
   resetSeries,
+  skipExercise as skipSeriesExercise,
   tick,
   togglePlay,
 } from './workout/series';
+import { ExerciseAnimation } from './workout/exercise-animation';
+import { gestureFor } from './workout/gestures';
 import { SoundService } from './workout/sound.service';
 import { StorageService } from './workout/storage.service';
 import { WakeLockService } from './workout/wake-lock.service';
@@ -29,6 +31,7 @@ const RING_RADIUS = 120;
 
 @Component({
   selector: 'app-root',
+  imports: [ExerciseAnimation],
   templateUrl: './app.html',
   styleUrl: './app.scss',
   host: { '[class]': '"phase-" + state().phase' },
@@ -57,8 +60,8 @@ export class App {
     return this.ringCircumference * done;
   });
   protected readonly totalLabel = formatDuration(SERIES_TOTAL_MS);
-  /** Changes on every interval so its content re-animates. */
-  protected readonly intervalKey = computed(() => `${this.state().phase}-${this.state().index}`);
+  protected readonly gesture = computed(() => gestureFor(this.exercise().name));
+  protected readonly canSkip = computed(() => canSkipExercise(this.state()));
 
   constructor() {
     let last = performance.now();
@@ -93,7 +96,7 @@ export class App {
   }
 
   protected togglePlay(): void {
-    this.sound.unlock();
+    void this.sound.unlock();
     if (this.state().phase === 'finished') {
       this.state.set(resetSeries());
     }
@@ -102,6 +105,18 @@ export class App {
 
   protected resetExercise(): void {
     this.state.update(resetExercise);
+  }
+
+  protected skipExercise(): void {
+    const previous = this.state();
+    const next = skipSeriesExercise(previous);
+    this.state.set(next);
+    if (previous.phase !== 'finished' && next.phase === 'finished' && this.soundEnabled()) {
+      void this.sound
+        .unlock()
+        .then(() => this.play([{ type: 'finished' }]))
+        .catch((error) => console.error('Impossible de jouer le signal de fin.', error));
+    }
   }
 
   protected askResetSeries(): void {
@@ -120,7 +135,7 @@ export class App {
   }
 
   protected toggleSound(): void {
-    this.sound.unlock();
+    void this.sound.unlock();
     this.soundEnabled.update((enabled) => !enabled);
   }
 
@@ -129,7 +144,7 @@ export class App {
     for (const event of events) {
       if (event.type === 'countdown') this.sound.countdown();
       else if (event.type === 'finished') this.sound.finished();
-      else this.sound.go();
+      else if (event.phase !== 'transition-preparation') this.sound.go();
     }
   }
 }

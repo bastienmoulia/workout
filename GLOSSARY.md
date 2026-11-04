@@ -12,10 +12,10 @@ _Avoid_: Tour, circuit
 Un mouvement pratiqué pendant un intervalle d'effort chronométré.
 
 **Récupération**:
-L'intervalle de repos entre deux exercices consécutifs d'une série.
+Les cinq premières secondes de l'intervalle de dix secondes entre deux exercices consécutifs.
 
 **Préparation**:
-L'intervalle qui précède le premier exercice d'une nouvelle série.
+Les cinq secondes avant le premier exercice, ou les cinq dernières secondes de l'intervalle entre deux exercices, pendant lesquelles le prochain mouvement est présenté.
 
 **Pause**:
 Une suspension de la série qui conserve sa progression et le temps restant dans l'intervalle en cours.

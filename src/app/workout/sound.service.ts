@@ -6,11 +6,11 @@ export class SoundService {
   private context?: AudioContext;
 
   /** Must be called from a user gesture so mobile browsers allow audio. */
-  unlock(): void {
+  unlock(): Promise<void> {
     const AudioCtor = globalThis.AudioContext ?? (globalThis as any).webkitAudioContext;
-    if (!AudioCtor) return;
+    if (!AudioCtor) return Promise.resolve();
     this.context ??= new AudioCtor();
-    void this.context?.resume();
+    return this.context?.resume() ?? Promise.resolve();
   }
 
   countdown(): void {
