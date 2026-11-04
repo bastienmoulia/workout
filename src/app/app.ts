@@ -48,7 +48,6 @@ export class App {
   protected readonly confetti = Array.from({ length: 28 }, (_, i) => i);
 
   protected readonly state = signal<SeriesState>(this.storage.loadSeries());
-  protected readonly soundEnabled = signal(this.storage.loadSoundEnabled());
   protected readonly confirmingReset = signal(false);
 
   protected readonly exercise = computed(() => PROGRAM[this.state().index]);
@@ -88,7 +87,6 @@ export class App {
     });
 
     effect(() => this.storage.saveSeries(this.state()));
-    effect(() => this.storage.saveSoundEnabled(this.soundEnabled()));
     effect(() => {
       const running = this.state().running;
       untracked(() => (running ? this.wakeLock.keepAwake() : this.wakeLock.allowSleep()));
@@ -111,7 +109,7 @@ export class App {
     const previous = this.state();
     const next = skipSeriesExercise(previous);
     this.state.set(next);
-    if (previous.phase !== 'finished' && next.phase === 'finished' && this.soundEnabled()) {
+    if (previous.phase !== 'finished' && next.phase === 'finished') {
       void this.sound
         .unlock()
         .then(() => this.play([{ type: 'finished' }]))
@@ -134,13 +132,7 @@ export class App {
     if (confirmed) this.state.set(resetSeries());
   }
 
-  protected toggleSound(): void {
-    void this.sound.unlock();
-    this.soundEnabled.update((enabled) => !enabled);
-  }
-
   private play(events: SeriesEvent[]): void {
-    if (!this.soundEnabled()) return;
     for (const event of events) {
       if (event.type === 'countdown') this.sound.countdown();
       else if (event.type === 'finished') this.sound.finished();
