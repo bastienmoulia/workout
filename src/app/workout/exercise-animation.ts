@@ -21,6 +21,7 @@ const LOWER_LEG_LENGTH = 39;
         [class.profile]="definition()?.view === 'profil'"
         aria-hidden="true"
       >
+        <line class="ground" x1="30" y1="229" x2="210" y2="229" />
         <line
           class="body"
           [attr.x1]="figure().hip.x"
@@ -29,9 +30,16 @@ const LOWER_LEG_LENGTH = 39;
           [attr.y2]="figure().shoulder.y"
         />
         <line
+          class="shoulders"
+          [attr.x1]="figure().shoulderLeft.x"
+          [attr.y1]="figure().shoulderLeft.y"
+          [attr.x2]="figure().shoulderRight.x"
+          [attr.y2]="figure().shoulderRight.y"
+        />
+        <line
           class="limb limb--back"
-          [attr.x1]="figure().shoulder.x"
-          [attr.y1]="figure().shoulder.y"
+          [attr.x1]="figure().shoulderLeft.x"
+          [attr.y1]="figure().shoulderLeft.y"
           [attr.x2]="figure().elbowLeft.x"
           [attr.y2]="figure().elbowLeft.y"
         />
@@ -44,8 +52,8 @@ const LOWER_LEG_LENGTH = 39;
         />
         <line
           class="limb limb--front"
-          [attr.x1]="figure().shoulder.x"
-          [attr.y1]="figure().shoulder.y"
+          [attr.x1]="figure().shoulderRight.x"
+          [attr.y1]="figure().shoulderRight.y"
           [attr.x2]="figure().elbowRight.x"
           [attr.y2]="figure().elbowRight.y"
         />
@@ -83,6 +91,32 @@ const LOWER_LEG_LENGTH = 39;
           [attr.y1]="figure().kneeRight.y"
           [attr.x2]="figure().footRight.x"
           [attr.y2]="figure().footRight.y"
+        />
+        <line
+          class="foot foot--back"
+          [attr.x1]="figure().heelLeft.x"
+          [attr.y1]="figure().heelLeft.y"
+          [attr.x2]="figure().toeLeft.x"
+          [attr.y2]="figure().toeLeft.y"
+        />
+        <line
+          class="foot foot--front"
+          [attr.x1]="figure().heelRight.x"
+          [attr.y1]="figure().heelRight.y"
+          [attr.x2]="figure().toeRight.x"
+          [attr.y2]="figure().toeRight.y"
+        />
+        <circle
+          class="knee knee--back"
+          [attr.cx]="figure().kneeLeft.x"
+          [attr.cy]="figure().kneeLeft.y"
+          r="3.5"
+        />
+        <circle
+          class="knee"
+          [attr.cx]="figure().kneeRight.x"
+          [attr.cy]="figure().kneeRight.y"
+          r="3.5"
         />
         <circle class="head" [attr.cx]="figure().head.x" [attr.cy]="figure().head.y" r="13" />
         <circle
@@ -123,7 +157,10 @@ const LOWER_LEG_LENGTH = 39;
     }
 
     .body,
-    .limb {
+    .shoulders,
+    .limb,
+    .foot,
+    .ground {
       fill: none;
       stroke: currentColor;
       stroke-linecap: round;
@@ -137,8 +174,15 @@ const LOWER_LEG_LENGTH = 39;
       stroke-width: 5;
     }
 
-    .profile .limb--back {
-      opacity: 0.3;
+    .ground {
+      opacity: 0.2;
+      stroke-width: 2;
+    }
+
+    .profile .limb--back,
+    .profile .foot--back,
+    .profile .knee--back {
+      opacity: 0.6;
     }
 
     .profile .limb--front {
@@ -147,6 +191,10 @@ const LOWER_LEG_LENGTH = 39;
 
     .hand {
       fill: var(--accent);
+    }
+
+    .knee {
+      fill: currentColor;
     }
 
     .animation--rest {
@@ -285,6 +333,8 @@ function makeFigure(
     buste: 0,
     pointes: 0,
     saut: 0,
+    rotation: 0,
+    bassinLateral: 0,
   };
   const values = rest || !pose ? neutral : pose;
   const hipY =
@@ -296,8 +346,8 @@ function makeFigure(
         )
       : STANDING_HIP_Y;
   const hip = {
-    x: 120,
-    y: hipY - values.saut,
+    x: 120 + values.bassinLateral,
+    y: hipY - values.pointes - values.saut,
   };
   const torsoRadians = (values.buste * Math.PI) / 180;
   const shoulder = {
@@ -305,8 +355,8 @@ function makeFigure(
     y: hip.y - Math.cos(torsoRadians) * 48,
   };
   const head = { x: shoulder.x, y: shoulder.y - 27 };
-  const shoulderLeft = { x: shoulder.x - (profile ? 2 : 0), y: shoulder.y };
-  const shoulderRight = { x: shoulder.x + (profile ? 2 : 0), y: shoulder.y };
+  const shoulderLeft = { x: shoulder.x - (profile ? 0 : 18), y: shoulder.y };
+  const shoulderRight = { x: shoulder.x + (profile ? 0 : 18), y: shoulder.y };
   const elbowLeft = fromAngle(shoulderLeft, values.brasGauche, 31);
   const handLeft = fromAngle(elbowLeft, values.brasGauche + values.coudeGauche, 29);
   const elbowRight = fromAngle(shoulderRight, values.brasDroit, 31);
@@ -315,32 +365,35 @@ function makeFigure(
   const hipRight = { x: hip.x + (profile ? 1 : 5), y: hip.y };
   const kneeLeft = fromAngle(hipLeft, values.jambeGauche, UPPER_LEG_LENGTH);
   const kneeRight = fromAngle(hipRight, values.jambeDroite, UPPER_LEG_LENGTH);
-  const footLeft = fromAngle(
-    kneeLeft,
-    values.jambeGauche + values.genouGauche,
-    LOWER_LEG_LENGTH,
-    values.pointes,
-  );
-  const footRight = fromAngle(
-    kneeRight,
-    values.jambeDroite + values.genouDroit,
-    LOWER_LEG_LENGTH,
-    values.pointes,
-  );
+  const footLeft = fromAngle(kneeLeft, values.jambeGauche + values.genouGauche, LOWER_LEG_LENGTH);
+  const footRight = fromAngle(kneeRight, values.jambeDroite + values.genouDroit, LOWER_LEG_LENGTH);
+  const leftDirection = profile ? 1 : -1;
+  const rotation = (values.rotation * Math.PI) / 180;
+  const turn = (point: Point, depth: number): Point => ({
+    x: shoulder.x + (point.x - shoulder.x) * Math.cos(rotation) + depth * Math.sin(rotation),
+    y: point.y,
+  });
+  const handDepth = (elbow: number) => 10 + Math.abs(Math.sin((elbow * Math.PI) / 180)) * 29;
   return {
     hip,
     shoulder,
+    shoulderLeft: turn(shoulderLeft, 0),
+    shoulderRight: turn(shoulderRight, 0),
     head,
-    elbowLeft,
-    handLeft,
-    elbowRight,
-    handRight,
+    elbowLeft: turn(elbowLeft, 10),
+    handLeft: turn(handLeft, handDepth(values.coudeGauche)),
+    elbowRight: turn(elbowRight, 10),
+    handRight: turn(handRight, handDepth(values.coudeDroit)),
     kneeLeft,
     kneeRight,
     hipLeft,
     hipRight,
     footLeft,
     footRight,
+    heelLeft: { x: footLeft.x - leftDirection * 4, y: footLeft.y },
+    toeLeft: { x: footLeft.x + leftDirection * 12, y: footLeft.y + values.pointes },
+    heelRight: { x: footRight.x - 4, y: footRight.y },
+    toeRight: { x: footRight.x + 12, y: footRight.y + values.pointes },
   };
 }
 
@@ -352,10 +405,10 @@ function legVerticalReach(legAngle: number, kneeAngle: number): number {
   );
 }
 
-function fromAngle(origin: Point, angle: number, length: number, lift = 0): Point {
+function fromAngle(origin: Point, angle: number, length: number): Point {
   const radians = (angle * Math.PI) / 180;
   return {
     x: origin.x + Math.sin(radians) * length,
-    y: origin.y + Math.cos(radians) * length - lift,
+    y: origin.y + Math.cos(radians) * length,
   };
 }

@@ -15,7 +15,9 @@ const ANGLE_KEYS = [
   'saut',
 ] as const;
 
-export type PoseAngles = Readonly<Record<(typeof ANGLE_KEYS)[number], number>>;
+const POSE_KEYS = [...ANGLE_KEYS, 'rotation', 'bassinLateral'] as const;
+
+export type PoseAngles = Readonly<Record<(typeof POSE_KEYS)[number], number>>;
 
 export interface GesturePose {
   readonly angles: PoseAngles;
@@ -52,7 +54,7 @@ function loadDefinitions(data: unknown): ReadonlyMap<string, GestureDefinition> 
       console.error(`[gestures.json] La position nommée « ${name} » est invalide.`);
       continue;
     }
-    namedPositions.set(name, { ...position } as PoseAngles);
+    namedPositions.set(name, { rotation: 0, bassinLateral: 0, ...position } as PoseAngles);
   }
   if (!namedPositions.has('neutre')) {
     console.error('[gestures.json] La position nommée « neutre » est obligatoire.');
@@ -186,7 +188,7 @@ function isAngleRecord(value: unknown): value is Record<string, number> {
 function isAngleOverrides(value: Record<string, unknown>): value is Record<string, number> {
   return Object.entries(value).every(
     ([key, angle]) =>
-      ANGLE_KEYS.includes(key as (typeof ANGLE_KEYS)[number]) &&
+      POSE_KEYS.includes(key as (typeof POSE_KEYS)[number]) &&
       typeof angle === 'number' &&
       Number.isFinite(angle) &&
       Math.abs(angle) <= 180,
