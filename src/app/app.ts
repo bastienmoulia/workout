@@ -29,6 +29,8 @@ import { AppUpdateService } from './app-update.service';
 
 const TICK_MS = 100;
 const RING_RADIUS = 120;
+const UPDATE_RELOAD_DELAY_MS = 1_500;
+const UPDATE_RETRY_DELAY_MS = 60_000;
 
 @Component({
   selector: 'app-root',
@@ -42,7 +44,7 @@ export class App {
   private readonly storage = inject(StorageService);
   private readonly wakeLock = inject(WakeLockService);
   private readonly document = inject(DOCUMENT);
-  protected readonly appUpdate = inject(AppUpdateService);
+  private readonly appUpdate = inject(AppUpdateService);
 
   protected readonly program = PROGRAM;
   protected readonly ringCircumference = 2 * Math.PI * RING_RADIUS;
@@ -95,6 +97,25 @@ export class App {
       const running = this.state().running;
       untracked(() => (running ? this.wakeLock.keepAwake() : this.wakeLock.allowSleep()));
     });
+    effect((onCleanup) => {
+      if (!this.appUpdate.reloadNeeded() || this.state().running || this.confirmingReset()) return;
+
+      const reloadWhenSafe = () => {
+        const state = this.state();
+        if (state.running || this.confirmingReset()) return;
+        if (!this.storage.saveSeries(state) && state.phase !== 'idle') {
+          console.error('Mise à jour reportée : impossible de sauvegarder la progression.');
+          timer = setTimeout(reloadWhenSafe, UPDATE_RETRY_DELAY_MS);
+          return;
+        }
+        this.storage.saveSoundEnabled(this.soundEnabled());
+        this.appUpdate.applyUpdate();
+      };
+
+      // Allow the finish sound to play and cancel the reload if the series resumes.
+      let timer = setTimeout(reloadWhenSafe, UPDATE_RELOAD_DELAY_MS);
+      onCleanup(() => clearTimeout(timer));
+    });
   }
 
   protected togglePlay(): void {
@@ -134,11 +155,6 @@ export class App {
   protected confirmResetSeries(confirmed: boolean): void {
     this.confirmingReset.set(false);
     if (confirmed) this.state.set(resetSeries());
-  }
-
-  protected applyUpdate(): void {
-    this.state.update(pause);
-    void this.appUpdate.applyUpdate();
   }
 
   protected toggleSound(): void {

@@ -15,8 +15,8 @@ export class StorageService {
     }
   }
 
-  saveSeries(state: SeriesState): void {
-    this.write(SERIES_KEY, JSON.stringify(state));
+  saveSeries(state: SeriesState): boolean {
+    return this.write(SERIES_KEY, JSON.stringify(state));
   }
 
   loadSoundEnabled(): boolean {
@@ -31,11 +31,12 @@ export class StorageService {
     this.write(SOUND_KEY, enabled ? 'on' : 'off');
   }
 
-  private write(key: string, value: string): void {
+  private write(key: string, value: string): boolean {
     try {
       localStorage.setItem(key, value);
+      return true;
     } catch {
-      // Private mode or full storage: progress just won't survive a reload.
+      return false;
     }
   }
 }

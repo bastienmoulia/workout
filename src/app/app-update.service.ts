@@ -13,17 +13,25 @@ const CHECK_INTERVAL_MS = 60 * 60 * 1000;
 export class AppUpdateService {
   private readonly swUpdate = inject(SwUpdate, { optional: true });
   private readonly document = inject(DOCUMENT);
+  private reloading = false;
 
-  readonly updateReady = signal(false);
+  readonly reloadNeeded = signal(false);
 
   constructor() {
     const sw = this.swUpdate;
     if (!sw?.isEnabled) return;
 
     const subscription = sw.versionUpdates.subscribe((event) => {
-      if (event.type === 'VERSION_READY') this.updateReady.set(true);
+      if (event.type === 'VERSION_READY') {
+        this.reloadNeeded.set(true);
+      } else if (event.type === 'VERSION_INSTALLATION_FAILED') {
+        console.error('Impossible de télécharger la mise à jour.', event.error);
+      }
     });
-    const unrecoverable = sw.unrecoverable.subscribe(() => this.reload());
+    const unrecoverable = sw.unrecoverable.subscribe((event) => {
+      console.error('La version actuelle ne peut pas être récupérée.', event.reason);
+      this.reloadNeeded.set(true);
+    });
 
     const onVisibility = () => {
       if (this.document.visibilityState === 'visible') this.check();
@@ -40,21 +48,18 @@ export class AppUpdateService {
     });
   }
 
-  async applyUpdate(): Promise<void> {
-    try {
-      await this.swUpdate?.activateUpdate();
-    } finally {
-      this.reload();
-    }
+  applyUpdate(): void {
+    if (this.reloading) return;
+    this.document.location.reload();
+    this.reloading = true;
   }
 
   private check(): void {
     this.swUpdate
       ?.checkForUpdate()
+      .then((ready) => {
+        if (ready) this.reloadNeeded.set(true);
+      })
       .catch((error) => console.error('Impossible de vérifier les mises à jour.', error));
-  }
-
-  private reload(): void {
-    this.document.location.reload();
   }
 }

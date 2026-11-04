@@ -2,6 +2,8 @@
 
 Timer d'entraînement mobile : 10 exercices de 60 s, 10 s de récupération entre chaque, 5 s de préparation (11 min 35 au total).
 Installable comme PWA, avec icône dédiée et fonctionnement hors ligne après le premier chargement.
+Les mises à jour sont téléchargées automatiquement et appliquées lorsque la séance est en pause ou
+terminée ; la progression est sauvegardée avant le rechargement.
 
 👉 https://bastienmoulia.github.io/workout/
 
@@ -18,4 +20,4 @@ Le programme est défini dans `src/app/workout/program.ts`, la logique de la sé
 ## Déploiement
 
 Chaque push sur `main` lance `.github/workflows/deploy.yml`, qui teste, construit et publie sur GitHub Pages.
-Prérequis (une fois) : *Settings → Pages → Source : GitHub Actions*.
+Prérequis (une fois) : _Settings → Pages → Source : GitHub Actions_.
