@@ -2,6 +2,8 @@
 
 Timer d'entraînement mobile : 10 exercices de 60 s, 10 s de récupération entre chaque, 5 s de préparation (11 min 35 au total).
 Installable comme PWA, avec icône dédiée et fonctionnement hors ligne après le premier chargement.
+Le rond et l'animation s'adaptent à l'espace disponible en gardant les commandes visibles.
+Les signaux sonores restent actifs : leur volume se règle sur l'appareil, sans bouton mute dans l'app.
 
 👉 https://bastienmoulia.github.io/workout/
 
