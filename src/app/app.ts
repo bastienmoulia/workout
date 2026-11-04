@@ -25,6 +25,7 @@ import { gestureFor } from './workout/gestures';
 import { SoundService } from './workout/sound.service';
 import { StorageService } from './workout/storage.service';
 import { WakeLockService } from './workout/wake-lock.service';
+import { AppUpdateService } from './app-update.service';
 
 const TICK_MS = 100;
 const RING_RADIUS = 120;
@@ -41,6 +42,7 @@ export class App {
   private readonly storage = inject(StorageService);
   private readonly wakeLock = inject(WakeLockService);
   private readonly document = inject(DOCUMENT);
+  protected readonly appUpdate = inject(AppUpdateService);
 
   protected readonly program = PROGRAM;
   protected readonly ringCircumference = 2 * Math.PI * RING_RADIUS;
@@ -132,6 +134,11 @@ export class App {
   protected confirmResetSeries(confirmed: boolean): void {
     this.confirmingReset.set(false);
     if (confirmed) this.state.set(resetSeries());
+  }
+
+  protected applyUpdate(): void {
+    this.state.update(pause);
+    void this.appUpdate.applyUpdate();
   }
 
   protected toggleSound(): void {
