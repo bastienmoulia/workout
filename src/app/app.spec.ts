@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { App } from './app';
+import { AppUpdateService } from './app-update.service';
 import { SoundService } from './workout/sound.service';
 
 describe('App', () => {
@@ -11,8 +12,8 @@ describe('App', () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     window.matchMedia = originalMatchMedia;
+    vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
   });
@@ -246,5 +247,148 @@ describe('App', () => {
     await fixture.whenStable();
     expect(el.querySelector('[role="alertdialog"]')).toBeNull();
     expect(el.querySelector('.label')?.textContent).toContain('Prêt');
+  });
+
+  it('reloads automatically when an update is ready while idle', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const update = TestBed.inject(AppUpdateService);
+    const applyUpdate = vi.spyOn(update, 'applyUpdate').mockImplementation(() => {});
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+    update.reloadNeeded.set(true);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('.update')).toBeNull();
+    vi.advanceTimersByTime(1_499);
+    expect(applyUpdate).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(applyUpdate).toHaveBeenCalledTimes(1);
+    fixture.destroy();
+  });
+
+  it('waits for a running series to remain paused before reloading with its progress saved', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const update = TestBed.inject(AppUpdateService);
+    const applyUpdate = vi.spyOn(update, 'applyUpdate').mockImplementation(() => {});
+    const playButton = el.querySelector<HTMLButtonElement>('.ctrl--main')!;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+    playButton.click();
+    fixture.detectChanges();
+    update.reloadNeeded.set(true);
+    fixture.detectChanges();
+    vi.advanceTimersByTime(2_000);
+    expect(applyUpdate).not.toHaveBeenCalled();
+
+    playButton.click();
+    fixture.detectChanges();
+    vi.advanceTimersByTime(1_000);
+    playButton.click();
+    fixture.detectChanges();
+    vi.advanceTimersByTime(2_000);
+    expect(applyUpdate).not.toHaveBeenCalled();
+
+    playButton.click();
+    fixture.detectChanges();
+    vi.advanceTimersByTime(1_500);
+    expect(applyUpdate).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(localStorage.getItem('workout.series') ?? 'null')).toMatchObject({
+      phase: 'preparation',
+      index: 0,
+      running: false,
+    });
+    fixture.destroy();
+  });
+
+  it('does not reload over the reset confirmation', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const update = TestBed.inject(AppUpdateService);
+    const applyUpdate = vi.spyOn(update, 'applyUpdate').mockImplementation(() => {});
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+    el.querySelector<HTMLButtonElement>('.ctrl--main')!.click();
+    fixture.detectChanges();
+    update.reloadNeeded.set(true);
+    fixture.detectChanges();
+    el.querySelectorAll<HTMLButtonElement>('.ctrl--small')[1].click();
+    fixture.detectChanges();
+    vi.advanceTimersByTime(2_000);
+    expect(el.querySelector('[role="alertdialog"]')).toBeTruthy();
+    expect(applyUpdate).not.toHaveBeenCalled();
+
+    el.querySelector<HTMLButtonElement>('.btn--ghost')!.click();
+    fixture.detectChanges();
+    vi.advanceTimersByTime(1_500);
+    expect(applyUpdate).toHaveBeenCalledTimes(1);
+    fixture.destroy();
+  });
+
+  it('lets the finish sound play before reloading a completed series', async () => {
+    localStorage.setItem(
+      'workout.series',
+      JSON.stringify({ phase: 'exercise', index: 9, remainingMs: 30_000 }),
+    );
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const update = TestBed.inject(AppUpdateService);
+    const applyUpdate = vi.spyOn(update, 'applyUpdate').mockImplementation(() => {});
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+    el.querySelector<HTMLButtonElement>('.ctrl--main')!.click();
+    fixture.detectChanges();
+    update.reloadNeeded.set(true);
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.ctrl--skip')!.click();
+    fixture.detectChanges();
+
+    vi.advanceTimersByTime(1_499);
+    expect(applyUpdate).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(applyUpdate).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(localStorage.getItem('workout.series') ?? 'null')).toMatchObject({
+      phase: 'finished',
+      skipped: true,
+    });
+    fixture.destroy();
+  });
+
+  it('retries an update instead of losing progress when saving fails', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const update = TestBed.inject(AppUpdateService);
+    const applyUpdate = vi.spyOn(update, 'applyUpdate').mockImplementation(() => {});
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+    el.querySelector<HTMLButtonElement>('.ctrl--main')!.click();
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.ctrl--main')!.click();
+    fixture.detectChanges();
+    const setItem = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new DOMException('Storage full', 'QuotaExceededError');
+    });
+    update.reloadNeeded.set(true);
+    fixture.detectChanges();
+    vi.advanceTimersByTime(1_500);
+    expect(applyUpdate).not.toHaveBeenCalled();
+    expect(log).toHaveBeenCalledWith(
+      'Mise à jour reportée : impossible de sauvegarder la progression.',
+    );
+
+    setItem.mockRestore();
+    vi.advanceTimersByTime(60_000);
+    expect(applyUpdate).toHaveBeenCalledTimes(1);
+    expect(JSON.parse(localStorage.getItem('workout.series') ?? 'null')).toMatchObject({
+      phase: 'preparation',
+      running: false,
+    });
+    fixture.destroy();
   });
 });
