@@ -6,6 +6,7 @@ Les mises à jour sont téléchargées automatiquement et appliquées lorsque la
 terminée ; la progression est sauvegardée avant le rechargement.
 Le rond et l'animation s'adaptent à l'espace disponible en gardant les commandes visibles.
 Les signaux sonores restent actifs : leur volume se règle sur l'appareil, sans bouton mute dans l'app.
+Le double toucher ne déclenche pas de zoom ; le zoom par pincement reste disponible.
 
 👉 https://bastienmoulia.github.io/workout/
 
