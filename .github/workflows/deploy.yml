@@ -36,7 +36,11 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment-attempt.outputs.page_url }}
     steps:
+      - id: deployment-attempt
+        uses: actions/deploy-pages@v4
+        continue-on-error: true
       - id: deployment
+        if: steps.deployment-attempt.outcome == 'failure'
         uses: actions/deploy-pages@v4
