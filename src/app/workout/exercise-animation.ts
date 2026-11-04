@@ -259,6 +259,8 @@ export class ExerciseAnimation {
       this.rest(),
       this.definition()?.view === 'profil',
       this.definition()?.groundSupport ?? false,
+      this.definition()?.profileSpacing ?? 0,
+      this.definition()?.pivotFeet ?? false,
     ),
   );
 
@@ -320,6 +322,8 @@ function makeFigure(
   rest: boolean,
   profile: boolean,
   groundSupport: boolean,
+  profileSpacing: number,
+  pivotFeet: boolean,
 ) {
   const neutral: PoseAngles = {
     brasGauche: -18,
@@ -337,8 +341,26 @@ function makeFigure(
     bassinLateral: 0,
   };
   const values = rest || !pose ? neutral : pose;
-  const hipY =
-    groundSupport && !rest
+  const rotation = (values.rotation * Math.PI) / 180;
+  const pivoting = pivotFeet && !rest && pose !== null;
+  const plantedFoot = (x: number) => {
+    const toe = { x, y: GROUND_Y };
+    const heel = {
+      x: x + Math.sin(rotation) * 16,
+      y: GROUND_Y - Math.cos(rotation) * 8,
+    };
+    const ankle = { x: heel.x * 0.75 + toe.x * 0.25, y: heel.y };
+    return { toe, heel, ankle };
+  };
+  const plantedLeft = plantedFoot(70);
+  const plantedRight = plantedFoot(170);
+  const hipX = 120 + values.bassinLateral;
+  const hipY = pivoting
+    ? Math.max(
+        supportedHipY(hipX - 5, plantedLeft.ankle),
+        supportedHipY(hipX + 5, plantedRight.ankle),
+      )
+    : groundSupport && !rest
       ? GROUND_Y -
         Math.max(
           legVerticalReach(values.jambeGauche, values.genouGauche),
@@ -346,7 +368,7 @@ function makeFigure(
         )
       : STANDING_HIP_Y;
   const hip = {
-    x: 120 + values.bassinLateral,
+    x: hipX,
     y: hipY - values.pointes - values.saut,
   };
   const torsoRadians = (values.buste * Math.PI) / 180;
@@ -355,20 +377,27 @@ function makeFigure(
     y: hip.y - Math.cos(torsoRadians) * 48,
   };
   const head = { x: shoulder.x, y: shoulder.y - 27 };
-  const shoulderLeft = { x: shoulder.x - (profile ? 0 : 18), y: shoulder.y };
-  const shoulderRight = { x: shoulder.x + (profile ? 0 : 18), y: shoulder.y };
+  const shoulderLeft = { x: shoulder.x - (profile ? profileSpacing : 18), y: shoulder.y };
+  const shoulderRight = { x: shoulder.x + (profile ? profileSpacing : 18), y: shoulder.y };
   const elbowLeft = fromAngle(shoulderLeft, values.brasGauche, 31);
   const handLeft = fromAngle(elbowLeft, values.brasGauche + values.coudeGauche, 29);
   const elbowRight = fromAngle(shoulderRight, values.brasDroit, 31);
   const handRight = fromAngle(elbowRight, values.brasDroit + values.coudeDroit, 29);
   const hipLeft = { x: hip.x - (profile ? 1 : 5), y: hip.y };
   const hipRight = { x: hip.x + (profile ? 1 : 5), y: hip.y };
-  const kneeLeft = fromAngle(hipLeft, values.jambeGauche, UPPER_LEG_LENGTH);
-  const kneeRight = fromAngle(hipRight, values.jambeDroite, UPPER_LEG_LENGTH);
-  const footLeft = fromAngle(kneeLeft, values.jambeGauche + values.genouGauche, LOWER_LEG_LENGTH);
-  const footRight = fromAngle(kneeRight, values.jambeDroite + values.genouDroit, LOWER_LEG_LENGTH);
+  const kneeLeft = pivoting
+    ? supportedKnee(hipLeft, plantedLeft.ankle, -1)
+    : fromAngle(hipLeft, values.jambeGauche, UPPER_LEG_LENGTH);
+  const kneeRight = pivoting
+    ? supportedKnee(hipRight, plantedRight.ankle, 1)
+    : fromAngle(hipRight, values.jambeDroite, UPPER_LEG_LENGTH);
+  const footLeft = pivoting
+    ? plantedLeft.ankle
+    : fromAngle(kneeLeft, values.jambeGauche + values.genouGauche, LOWER_LEG_LENGTH);
+  const footRight = pivoting
+    ? plantedRight.ankle
+    : fromAngle(kneeRight, values.jambeDroite + values.genouDroit, LOWER_LEG_LENGTH);
   const leftDirection = profile ? 1 : -1;
-  const rotation = (values.rotation * Math.PI) / 180;
   const turn = (point: Point, depth: number): Point => ({
     x: shoulder.x + (point.x - shoulder.x) * Math.cos(rotation) + depth * Math.sin(rotation),
     y: point.y,
@@ -390,10 +419,31 @@ function makeFigure(
     hipRight,
     footLeft,
     footRight,
-    heelLeft: { x: footLeft.x - leftDirection * 4, y: footLeft.y },
-    toeLeft: { x: footLeft.x + leftDirection * 12, y: footLeft.y + values.pointes },
-    heelRight: { x: footRight.x - 4, y: footRight.y },
-    toeRight: { x: footRight.x + 12, y: footRight.y + values.pointes },
+    heelLeft: pivoting ? plantedLeft.heel : { x: footLeft.x - leftDirection * 4, y: footLeft.y },
+    toeLeft: pivoting
+      ? plantedLeft.toe
+      : { x: footLeft.x + leftDirection * 12, y: footLeft.y + values.pointes },
+    heelRight: pivoting ? plantedRight.heel : { x: footRight.x - 4, y: footRight.y },
+    toeRight: pivoting
+      ? plantedRight.toe
+      : { x: footRight.x + 12, y: footRight.y + values.pointes },
+  };
+}
+
+function supportedHipY(hipX: number, ankle: Point): number {
+  const reach = UPPER_LEG_LENGTH + LOWER_LEG_LENGTH;
+  return ankle.y - Math.sqrt(reach * reach - (ankle.x - hipX) ** 2);
+}
+
+function supportedKnee(hip: Point, ankle: Point, side: number): Point {
+  const dx = ankle.x - hip.x;
+  const dy = ankle.y - hip.y;
+  const distance = Math.hypot(dx, dy);
+  const along = (UPPER_LEG_LENGTH ** 2 - LOWER_LEG_LENGTH ** 2 + distance ** 2) / (2 * distance);
+  const bend = Math.sqrt(Math.max(0, UPPER_LEG_LENGTH ** 2 - along ** 2));
+  return {
+    x: hip.x + (along * dx + side * bend * dy) / distance,
+    y: hip.y + (along * dy - side * bend * dx) / distance,
   };
 }
 

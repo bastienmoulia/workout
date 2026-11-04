@@ -29,6 +29,8 @@ export interface GestureDefinition {
   readonly view: 'face' | 'profil';
   readonly description: string;
   readonly groundSupport: boolean;
+  readonly profileSpacing: number;
+  readonly pivotFeet: boolean;
   readonly reducedMotionPose: number;
   readonly poses: readonly GesturePose[];
   readonly durationMs: number;
@@ -114,6 +116,8 @@ function parseDefinition(
   const view = value['vue'];
   const description = value['description'];
   const groundSupport = value['appuiAuSol'];
+  const profileSpacing = value['ecartProfil'];
+  const pivotFeet = value['piedsPivots'];
   const reducedMotionPose = value['poseReduite'];
   const rawPoses = value['poses'];
   if (
@@ -122,6 +126,13 @@ function parseDefinition(
     typeof description !== 'string' ||
     description.trim().length === 0 ||
     (groundSupport !== undefined && typeof groundSupport !== 'boolean') ||
+    (profileSpacing !== undefined &&
+      (typeof profileSpacing !== 'number' ||
+        !Number.isFinite(profileSpacing) ||
+        profileSpacing < 0 ||
+        profileSpacing > 18)) ||
+    (pivotFeet !== undefined && typeof pivotFeet !== 'boolean') ||
+    (pivotFeet === true && (groundSupport !== true || view !== 'face')) ||
     typeof reducedMotionPose !== 'number' ||
     !Number.isInteger(reducedMotionPose) ||
     !Array.isArray(rawPoses) ||
@@ -169,11 +180,26 @@ function parseDefinition(
     console.error(`[gestures.json] Pose réduite invalide pour « ${exercise} ».`);
     return undefined;
   }
+  if (
+    pivotFeet === true &&
+    poses.some(
+      ({ angles }) =>
+        Math.abs(angles.rotation) > 90 ||
+        Math.abs(angles.bassinLateral) > 24 ||
+        angles.pointes !== 0 ||
+        angles.saut !== 0,
+    )
+  ) {
+    console.error(`[gestures.json] Appui sur les pointes impossible pour « ${exercise} ».`);
+    return undefined;
+  }
   return {
     exercise,
     view,
     description,
     groundSupport: groundSupport === true,
+    profileSpacing: typeof profileSpacing === 'number' ? profileSpacing : 0,
+    pivotFeet: pivotFeet === true,
     reducedMotionPose,
     poses,
     durationMs: poses.reduce((total, pose) => total + pose.durationMs, 0),
@@ -191,7 +217,7 @@ function isAngleOverrides(value: Record<string, unknown>): value is Record<strin
       POSE_KEYS.includes(key as (typeof POSE_KEYS)[number]) &&
       typeof angle === 'number' &&
       Number.isFinite(angle) &&
-      Math.abs(angle) <= 180,
+      Math.abs(angle) <= 360,
   );
 }
 
