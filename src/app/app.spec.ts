@@ -213,6 +213,67 @@ describe('App', () => {
     );
   });
 
+  it('shows the stretching reminder five seconds after the finish animation and keeps it until restart', async () => {
+    localStorage.setItem(
+      'workout.series',
+      JSON.stringify({ phase: 'exercise', index: 9, remainingMs: 30_000 }),
+    );
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const sound = TestBed.inject(SoundService);
+    const reminderSound = vi.spyOn(sound, 'stretchingReminder');
+    vi.spyOn(sound, 'unlock').mockResolvedValue();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+    el.querySelector<HTMLButtonElement>('.ctrl--skip')!.click();
+    fixture.detectChanges();
+
+    vi.advanceTimersByTime(5_499);
+    fixture.detectChanges();
+    expect(el.textContent).not.toContain("N'oublie pas tes étirements");
+    expect(reminderSound).not.toHaveBeenCalled();
+
+    vi.advanceTimersByTime(1);
+    fixture.detectChanges();
+    expect(el.textContent).toContain("N'oublie pas tes étirements");
+    expect(reminderSound).toHaveBeenCalledOnce();
+
+    vi.advanceTimersByTime(10_000);
+    fixture.detectChanges();
+    expect(el.textContent).toContain("N'oublie pas tes étirements");
+
+    el.querySelector<HTMLButtonElement>('.ctrl--main')!.click();
+    fixture.detectChanges();
+    expect(el.textContent).not.toContain("N'oublie pas tes étirements");
+    fixture.destroy();
+  });
+
+  it('cancels the stretching reminder when the series is restarted before it appears', async () => {
+    localStorage.setItem(
+      'workout.series',
+      JSON.stringify({ phase: 'exercise', index: 9, remainingMs: 30_000 }),
+    );
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+    const sound = TestBed.inject(SoundService);
+    const reminderSound = vi.spyOn(sound, 'stretchingReminder');
+    vi.spyOn(sound, 'unlock').mockResolvedValue();
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+
+    el.querySelector<HTMLButtonElement>('.ctrl--skip')!.click();
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.ctrl--main')!.click();
+    fixture.detectChanges();
+
+    vi.advanceTimersByTime(5_500);
+    fixture.detectChanges();
+    expect(el.textContent).not.toContain("N'oublie pas tes étirements");
+    expect(reminderSound).not.toHaveBeenCalled();
+    fixture.destroy();
+  });
+
   it('plays countdown and phase signals regardless of the old mute preference', async () => {
     localStorage.setItem('workout.sound', 'off');
     const sound = TestBed.inject(SoundService);

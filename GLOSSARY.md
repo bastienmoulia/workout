@@ -19,3 +19,6 @@ Les cinq secondes avant le premier exercice, ou les cinq dernières secondes de 
 
 **Pause**:
 Une suspension de la série qui conserve sa progression et le temps restant dans l'intervalle en cours.
+
+**Étirements**:
+Exercices d'assouplissement conseillés après une série terminée.

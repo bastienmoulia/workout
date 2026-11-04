@@ -29,6 +29,8 @@ import { AppUpdateService } from './app-update.service';
 
 const TICK_MS = 100;
 const RING_RADIUS = 120;
+const FINISHED_ANIMATION_DURATION_MS = 500;
+const STRETCHING_REMINDER_DELAY_MS = 5_000;
 const UPDATE_RELOAD_DELAY_MS = 1_500;
 const UPDATE_RETRY_DELAY_MS = 60_000;
 
@@ -53,6 +55,8 @@ export class App {
 
   protected readonly state = signal<SeriesState>(this.storage.loadSeries());
   protected readonly confirmingReset = signal(false);
+  protected readonly stretchingReminderVisible = signal(false);
+  private readonly isFinished = computed(() => this.state().phase === 'finished');
 
   protected readonly exercise = computed(() => PROGRAM[this.state().index]);
   protected readonly seconds = computed(() => Math.ceil(this.state().remainingMs / 1000));
@@ -94,6 +98,17 @@ export class App {
     effect(() => {
       const running = this.state().running;
       untracked(() => (running ? this.wakeLock.keepAwake() : this.wakeLock.allowSleep()));
+    });
+    effect((onCleanup) => {
+      const finished = this.isFinished();
+      this.stretchingReminderVisible.set(false);
+      if (!finished) return;
+
+      const timer = setTimeout(() => {
+        this.stretchingReminderVisible.set(true);
+        this.sound.stretchingReminder();
+      }, FINISHED_ANIMATION_DURATION_MS + STRETCHING_REMINDER_DELAY_MS);
+      onCleanup(() => clearTimeout(timer));
     });
     effect((onCleanup) => {
       if (!this.appUpdate.reloadNeeded() || this.state().running || this.confirmingReset()) return;
