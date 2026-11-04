@@ -117,12 +117,14 @@ describe('App', () => {
       return Number(torso.getAttribute('y1'));
     };
 
-    const descending = frame(900);
-    const lowest = frame(1800);
-    const ascending = frame(2700);
-    expect(descending).toBeGreaterThan(145);
-    expect(lowest).toBeGreaterThan(descending);
+    const ascending = frame(900);
+    const standing = frame(1800);
+    const descending = frame(2700);
+    const lowest = frame(3600);
     expect(ascending).toBeLessThan(lowest);
+    expect(standing).toBeLessThan(ascending);
+    expect(descending).toBeGreaterThan(standing);
+    expect(lowest).toBeGreaterThan(descending);
     fixture.destroy();
   });
 

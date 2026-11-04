@@ -117,6 +117,35 @@ describe('guided exercise movements in App', () => {
     }
   });
 
+  it('raises both arms forwards and bends the knees when lowering them', async () => {
+    await exercise(0);
+    frame(0);
+    const loweredHip = line('.body').start.y;
+    expect(alignment('front', 'leg')).toBeLessThan(0.6);
+    frame(650);
+    expect(hand(0).x).toBeGreaterThan(line('.body').end.x + 45);
+    expect(hand(1).x).toBeGreaterThan(line('.body').end.x + 45);
+    frame(1300);
+    expect(line('.body').start.y).toBeLessThan(loweredHip - 20);
+  });
+
+  it('swings both alternating arms in front of the torso, not out to the sides', async () => {
+    await exercise(1);
+    frame(600);
+    expect(hand(0).x).toBeGreaterThan(line('.body').end.x + 45);
+    expect(hand(1).x).toBeGreaterThan(line('.body').end.x + 45);
+  });
+
+  it('holds a deeper squat throughout the torso rotations', async () => {
+    await exercise(2);
+    for (const time of [0, 750, 1500, 2250]) {
+      frame(time);
+      expect(line('.body').start.y).toBeGreaterThan(158);
+      expect(alignment('back', 'leg')).toBeLessThan(0.5);
+      expect(alignment('front', 'leg')).toBeLessThan(0.5);
+    }
+  });
+
   it('twists the shoulders and bent arms without leaning the torso', async () => {
     await exercise(2);
     frame(0);
@@ -147,6 +176,28 @@ describe('guided exercise movements in App', () => {
     }
   });
 
+  it('pivots the golf heels from side to side around planted toes', async () => {
+    await exercise(3);
+    frame(0);
+    const toes = [line('.foot--back').end, line('.foot--front').end];
+    const heels = [line('.foot--back').start, line('.foot--front').start];
+    for (let time = 0; time <= 4400; time += 110) {
+      frame(time);
+      for (const [index, side] of ['back', 'front'].entries()) {
+        const foot = line(`.foot--${side}`);
+        expect(foot.end).toEqual(toes[index]);
+        if (time === 2200) {
+          expect(Math.abs(foot.start.x - heels[index].x)).toBeGreaterThan(15);
+        }
+        expect(foot.start.y).toBeLessThan(foot.end.y - 3);
+        const thigh = line(`.limb--${side}`, 2);
+        const shin = line(`.limb--${side}`, 3);
+        expect(distance(thigh.start, thigh.end)).toBeCloseTo(43);
+        expect(distance(shin.start, shin.end)).toBeCloseTo(39);
+      }
+    }
+  });
+
   it('takes the wings from alongside the body to fully overhead', async () => {
     await exercise(4);
     frame(0);
@@ -157,7 +208,7 @@ describe('guided exercise movements in App', () => {
     expect(hand(1).y).toBeCloseTo(line('.body').end.y - 60);
   });
 
-  it('returns to both feet between forward knee lifts and claps with straight arms', async () => {
+  it('returns to both feet between forward knee lifts and claps with visible bent arms', async () => {
     await exercise(5);
     for (const time of [0, 1400, 2800]) {
       frame(time);
@@ -170,8 +221,9 @@ describe('guided exercise movements in App', () => {
     expect(leftKnee.y).toBeCloseTo(line('.body').start.y);
     expect(hand(0).y).toBeLessThan(leftKnee.y);
     expect(distance(hand(0), hand(1))).toBeLessThan(3);
-    expect(alignment('back', 'arm')).toBeCloseTo(1);
-    expect(alignment('front', 'arm')).toBeCloseTo(1);
+    expect(alignment('back', 'arm')).toBeLessThan(0.9);
+    expect(alignment('front', 'arm')).toBeLessThan(0.9);
+    expect(distance(line('.limb--back', 0).end, line('.limb--front', 0).end)).toBeGreaterThan(12);
     frame(4900);
     const rightKnee = line('.limb--front', 2).end;
     expect(rightKnee.x).toBeGreaterThan(line('.body').start.x + 40);
@@ -180,14 +232,16 @@ describe('guided exercise movements in App', () => {
     expect(line('.foot--back').end.y).toBeCloseTo(227);
   });
 
-  it('sets the lateral lunge before reaching the opposite foot and stays low between sides', async () => {
+  it('starts reaching during the lateral lunge and stays low between sides', async () => {
     await exercise(6);
     frame(0);
     expect(line('.body').start.y).toBeGreaterThan(170);
+    frame(600);
+    expect(line('.body').end.x).toBeLessThan(line('.body').start.x - 15);
     frame(1200);
     expect(alignment('front', 'leg')).toBeCloseTo(1);
     expect(alignment('back', 'leg')).toBeLessThan(0);
-    expect(distance(hand(1), line('.limb--back', 3).end)).toBeGreaterThan(20);
+    expect(distance(hand(1), line('.limb--back', 3).end)).toBeLessThan(18);
     const leftLunge = [line('.limb--back', 2), line('.limb--front', 2)];
 
     frame(1900);
@@ -201,6 +255,7 @@ describe('guided exercise movements in App', () => {
     frame(4200);
     expect(alignment('back', 'leg')).toBeCloseTo(1);
     expect(alignment('front', 'leg')).toBeLessThan(0);
+    expect(distance(hand(0), line('.limb--front', 3).end)).toBeLessThan(18);
     const rightLunge = [line('.limb--back', 2), line('.limb--front', 2)];
     frame(4900);
     expect([line('.limb--back', 2), line('.limb--front', 2)]).toEqual(rightLunge);
@@ -239,11 +294,31 @@ describe('guided exercise movements in App', () => {
 
   it('finishes the squat wing beat above the head with both feet grounded', async () => {
     await exercise(8);
-    frame(3600);
-    expect(hand(0).y).toBeLessThan(line('.body').end.y - 55);
-    expect(hand(1).y).toBeLessThan(line('.body').end.y - 55);
+    frame(1800);
+    expect(hand(0).y).toBeLessThan(line('.body').end.y - 45);
+    expect(hand(1).y).toBeLessThan(line('.body').end.y - 45);
     expect(line('.foot--back').end.y).toBeCloseTo(227);
     expect(line('.foot--front').end.y).toBeCloseTo(227);
+  });
+
+  it('crosses bent forearms inward below and above, opening through the sides', async () => {
+    await exercise(8);
+    for (const time of [0, 1800]) {
+      frame(time);
+      expect(hand(0).x).toBeGreaterThan(hand(1).x + 8);
+      expect(line('.limb--back', 0).end.x).toBeLessThan(line('.limb--front', 0).end.x);
+      expect(alignment('back', 'arm')).toBeLessThan(0.9);
+      expect(alignment('front', 'arm')).toBeLessThan(0.9);
+      if (time === 0) {
+        expect(hand(0).y).toBeGreaterThan(line('.body').end.y + 40);
+      } else {
+        expect(hand(0).y).toBeLessThan(line('.body').end.y - 45);
+      }
+    }
+    frame(900);
+    expect(hand(0).x).toBeLessThan(line('.body').end.x - 60);
+    expect(hand(1).x).toBeGreaterThan(line('.body').end.x + 60);
+    expect(Math.abs(hand(0).y - line('.body').end.y)).toBeLessThan(5);
   });
 
   it('shows both feet taking off and landing in a quick hopping loop', async () => {
