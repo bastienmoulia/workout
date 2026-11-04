@@ -25,7 +25,11 @@ export class SoundService {
     [523, 659, 784, 1047].forEach((freq, i) => this.tone(freq, i * 0.16, i === 3 ? 0.6 : 0.16));
   }
 
-  private tone(frequency: number, delay: number, duration: number): void {
+  stretchingReminder(): void {
+    this.tone(660, 0, 0.2, 0.12);
+  }
+
+  private tone(frequency: number, delay: number, duration: number, peakGain = 0.4): void {
     const ctx = this.context;
     if (!ctx || ctx.state !== 'running') return;
     const start = ctx.currentTime + delay;
@@ -34,7 +38,7 @@ export class SoundService {
     osc.type = 'triangle';
     osc.frequency.value = frequency;
     gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(0.4, start + 0.01);
+    gain.gain.exponentialRampToValueAtTime(peakGain, start + 0.01);
     gain.gain.exponentialRampToValueAtTime(0.0001, start + duration);
     osc.connect(gain).connect(ctx.destination);
     osc.start(start);
