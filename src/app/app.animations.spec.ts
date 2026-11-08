@@ -163,6 +163,21 @@ describe('guided exercise movements in App', () => {
     expect((hand(0).x + hand(1).x) / 2).toBeGreaterThan(leftward + 30);
   });
 
+  it('keeps the hands nearly together with elbows opened outward during torso rotations', async () => {
+    await exercise(2);
+    for (const time of [0, 750, 1500, 2250]) {
+      frame(time);
+      expect(Math.hypot(hand(0).x - hand(1).x, hand(0).y - hand(1).y)).toBeLessThanOrEqual(22);
+      if (time === 750) {
+        const shoulders = line('.shoulders');
+        const leftElbow = line('.limb--back').end;
+        const rightElbow = line('.limb--front').end;
+        expect(leftElbow.x).toBeLessThan(shoulders.start.x - 12);
+        expect(rightElbow.x).toBeGreaterThan(shoulders.end.x + 12);
+      }
+    }
+  });
+
   it('shows the knees and feet with a straight rear leg during the golf swing', async () => {
     await exercise(3);
     for (const time of [0, 2200]) {
