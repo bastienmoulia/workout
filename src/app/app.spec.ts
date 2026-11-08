@@ -239,6 +239,7 @@ describe('App', () => {
     vi.advanceTimersByTime(1);
     fixture.detectChanges();
     expect(el.textContent).toContain("N'oublie pas tes étirements");
+    expect(el.querySelector('.stretching-reminder')).toBeTruthy();
     expect(reminderSound).toHaveBeenCalledOnce();
 
     vi.advanceTimersByTime(10_000);
