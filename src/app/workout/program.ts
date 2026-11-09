@@ -14,8 +14,8 @@ export const PROGRAM: readonly Exercise[] = [
   { name: 'Swing de golf', emoji: '🏌️' },
   { name: "Battements d'ailes", emoji: '🦋' },
   { name: 'Montées de genoux', emoji: '🦵' },
-  { name: 'Fentes latérales avec toucher du pied opposé', emoji: '🦶' },
   { name: 'Extensions des mollets', emoji: '🩰' },
+  { name: 'Fentes latérales avec toucher du pied opposé', emoji: '🦶' },
   { name: "Squats avec battements d'ailes", emoji: '🐥' },
   { name: 'Sautillements', emoji: '🐇' },
 ];
