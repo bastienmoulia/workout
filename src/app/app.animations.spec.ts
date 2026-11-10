@@ -248,7 +248,7 @@ describe('guided exercise movements in App', () => {
   });
 
   it('starts reaching during the lateral lunge and stays low between sides', async () => {
-    await exercise(6);
+    await exercise(7);
     frame(0);
     expect(line('.body').start.y).toBeGreaterThan(170);
     frame(600);
@@ -281,7 +281,7 @@ describe('guided exercise movements in App', () => {
   });
 
   it('holds the heels up for two quick punches, returning each fist to guard', async () => {
-    await exercise(7);
+    await exercise(6);
     frame(0);
     const standing = line('.body').start.y;
     expect(alignment('back', 'arm')).toBeLessThan(0);
