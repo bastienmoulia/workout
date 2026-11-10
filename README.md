@@ -13,9 +13,10 @@ Le double toucher ne déclenche pas de zoom ; le zoom par pincement reste dispon
 ## Développement
 
 ```bash
-npm install
-npm start            # http://localhost:4200
-npm test -- --watch=false
+corepack enable       # Une fois par installation de Node.js
+pnpm install
+pnpm start            # http://localhost:4200
+pnpm test --watch=false
 ```
 
 Le programme est défini dans `src/app/workout/program.ts`, la logique de la série dans `src/app/workout/series.ts`.
