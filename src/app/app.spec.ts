@@ -29,6 +29,30 @@ describe('App', () => {
     expect(el.querySelector('[aria-label="Activer le son"]')).toBeNull();
   });
 
+  it('switches the Christmas theme off at local midnight', () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
+    vi.setSystemTime(new Date(2026, 11, 31, 23, 59, 59));
+    const themeColorMeta = document.createElement('meta');
+    themeColorMeta.name = 'theme-color';
+    document.head.append(themeColorMeta);
+
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    const el = fixture.nativeElement as HTMLElement;
+
+    expect(el.classList.contains('theme-christmas')).toBe(true);
+    expect(themeColorMeta.content).toBe('#173b2b');
+
+    vi.advanceTimersByTime(1_000);
+    fixture.detectChanges();
+
+    expect(el.classList.contains('theme-christmas')).toBe(false);
+    expect(themeColorMeta.content).toBe('#2b0b5e');
+
+    fixture.destroy();
+    themeColorMeta.remove();
+  });
+
   it('starts the preparation countdown on play', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();

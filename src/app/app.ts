@@ -26,6 +26,12 @@ import { SoundService } from './workout/sound.service';
 import { StorageService } from './workout/storage.service';
 import { WakeLockService } from './workout/wake-lock.service';
 import { AppUpdateService } from './app-update.service';
+import {
+  CHRISTMAS_THEME_COLOR,
+  DEFAULT_THEME_COLOR,
+  isChristmasSeason,
+  millisecondsUntilNextLocalDay,
+} from './seasonal-theme';
 
 const TICK_MS = 100;
 const RING_RADIUS = 120;
@@ -39,7 +45,9 @@ const UPDATE_RETRY_DELAY_MS = 60_000;
   imports: [ExerciseAnimation],
   templateUrl: './app.html',
   styleUrl: './app.scss',
-  host: { '[class]': '"phase-" + state().phase' },
+  host: {
+    '[class]': '"phase-" + state().phase + (christmasTheme() ? " theme-christmas" : "")',
+  },
 })
 export class App {
   private readonly sound = inject(SoundService);
@@ -54,6 +62,7 @@ export class App {
   protected readonly confetti = Array.from({ length: 28 }, (_, i) => i);
 
   protected readonly state = signal<SeriesState>(this.storage.loadSeries());
+  protected readonly christmasTheme = signal(isChristmasSeason(new Date()));
   protected readonly confirmingReset = signal(false);
   protected readonly stretchingReminderVisible = signal(false);
   private readonly isFinished = computed(() => this.state().phase === 'finished');
@@ -72,6 +81,24 @@ export class App {
 
   constructor() {
     let last = performance.now();
+    const themeColorMeta = this.document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+    let seasonalThemeTimer: ReturnType<typeof setTimeout>;
+    const updateSeasonalTheme = () => {
+      const now = new Date();
+      const christmasSeason = isChristmasSeason(now);
+      this.christmasTheme.set(christmasSeason);
+      themeColorMeta?.setAttribute(
+        'content',
+        christmasSeason ? CHRISTMAS_THEME_COLOR : DEFAULT_THEME_COLOR,
+      );
+      seasonalThemeTimer = setTimeout(updateSeasonalTheme, millisecondsUntilNextLocalDay(now));
+    };
+    const refreshSeasonalTheme = () => {
+      clearTimeout(seasonalThemeTimer);
+      updateSeasonalTheme();
+    };
+    updateSeasonalTheme();
+
     const timer = setInterval(() => {
       const now = performance.now();
       const elapsed = now - last;
@@ -84,13 +111,19 @@ export class App {
     }, TICK_MS);
 
     const onVisibility = () => {
+      refreshSeasonalTheme();
       if (this.document.visibilityState === 'hidden') this.state.update(pause);
     };
+    const window = this.document.defaultView;
     this.document.addEventListener('visibilitychange', onVisibility);
+    window?.addEventListener('focus', refreshSeasonalTheme);
 
     inject(DestroyRef).onDestroy(() => {
       clearInterval(timer);
+      clearTimeout(seasonalThemeTimer);
+      window?.removeEventListener('focus', refreshSeasonalTheme);
       this.document.removeEventListener('visibilitychange', onVisibility);
+      themeColorMeta?.setAttribute('content', DEFAULT_THEME_COLOR);
       void this.wakeLock.allowSleep();
     });
 

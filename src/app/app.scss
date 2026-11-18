@@ -1,9 +1,17 @@
 :host {
   --bg-from: #2b0b5e;
   --bg-to: #6a1fb8;
+  --bg-deep: #12032b;
   --accent: #ff5fd2;
   --ring-from: #ff8bf0;
   --ring-to: #b28bff;
+  --blob-two: #8f3dff;
+  --blob-three: #ff3d9a;
+  --button-text: #2b0b5e;
+  --dialog-from: #4b1595;
+  --dialog-to: #2b0b5e;
+  --danger: #ff5fa2;
+  --danger-text: #2b0b5e;
 
   position: relative;
   display: flex;
@@ -23,7 +31,7 @@
     z-index: -2;
     background:
       radial-gradient(circle at 20% 0%, var(--bg-to), transparent 60%),
-      linear-gradient(160deg, var(--bg-from), #12032b 90%);
+      linear-gradient(160deg, var(--bg-from), var(--bg-deep) 90%);
     transition: background 0.8s ease;
   }
 }
@@ -55,6 +63,101 @@
   --accent: #ffd166;
 }
 
+:host(.theme-christmas) {
+  --bg-from: #173b2b;
+  --bg-to: #8b2d35;
+  --bg-deep: #0e1712;
+  --accent: #f3cd71;
+  --ring-from: #f3cd71;
+  --ring-to: #e77870;
+  --blob-two: #b68b3b;
+  --blob-three: #9c333b;
+  --button-text: #241a0c;
+  --dialog-from: #28523b;
+  --dialog-to: #241619;
+  --danger: #c4484d;
+  --danger-text: #fff8e6;
+}
+
+:host(.theme-christmas.phase-preparation),
+:host(.theme-christmas.phase-transition-preparation) {
+  --bg-to: #704221;
+  --accent: #ffe28a;
+  --ring-from: #ffe28a;
+  --ring-to: #ed7969;
+}
+
+:host(.theme-christmas.phase-recovery) {
+  --bg-from: #123c38;
+  --bg-to: #286e66;
+  --accent: #85d9c0;
+  --ring-from: #85d9c0;
+  --ring-to: #e0c270;
+}
+
+:host(.theme-christmas.phase-finished) {
+  --bg-to: #4d783b;
+  --accent: #ffe28a;
+  --ring-from: #ffe28a;
+  --ring-to: #e77870;
+}
+
+.christmas-decorations {
+  display: none;
+}
+
+:host(.theme-christmas) .christmas-decorations {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.christmas-garland {
+  position: absolute;
+  top: -1.7rem;
+  left: 50%;
+  width: min(112vw, 38rem);
+  height: 4.5rem;
+  transform: translateX(-50%);
+  border-bottom: 0.18rem solid #527449;
+  border-radius: 0 0 50% 50%;
+}
+
+.christmas-lights {
+  position: absolute;
+  right: 0;
+  bottom: -0.5rem;
+  left: 0;
+  height: 0.8rem;
+  background: radial-gradient(circle, #f6db87 0 0.2rem, transparent 0.24rem) 0 0 / 2.5rem 0.8rem
+    repeat-x;
+}
+
+.snowflake {
+  position: absolute;
+  color: #fff3d4;
+  opacity: 0.38;
+  font-size: 1.4rem;
+
+  &--one {
+    top: 21%;
+    left: 5%;
+  }
+  &--two {
+    top: 43%;
+    right: 6%;
+    font-size: 1rem;
+  }
+  &--three {
+    bottom: 20%;
+    left: 8%;
+    font-size: 1.1rem;
+  }
+}
+
 /* Floating background blobs */
 .blobs {
   position: fixed;
@@ -80,13 +183,13 @@
     &:nth-child(2) {
       bottom: 8rem;
       right: -6rem;
-      background: #8f3dff;
+      background: var(--blob-two);
       animation-duration: 18s;
     }
     &:nth-child(3) {
       bottom: -6rem;
       left: 20%;
-      background: #ff3d9a;
+      background: var(--blob-three);
       animation-duration: 22s;
       opacity: 0.6;
     }
@@ -335,7 +438,7 @@
     height: 6.5rem;
     border-radius: 50%;
     background: linear-gradient(135deg, var(--ring-from), var(--ring-to));
-    color: #2b0b5e;
+    color: var(--button-text);
     box-shadow:
       0 10px 30px -6px var(--ring-from),
       inset 0 -6px 0 rgb(0 0 0 / 0.15);
@@ -380,7 +483,7 @@
   max-width: 22rem;
   padding: 1.5rem;
   border-radius: 1.5rem;
-  background: linear-gradient(160deg, #4b1595, #2b0b5e);
+  background: linear-gradient(160deg, var(--dialog-from), var(--dialog-to));
   box-shadow: 0 20px 60px rgb(0 0 0 / 0.5);
   text-align: center;
 
@@ -411,8 +514,8 @@
     background: rgb(255 255 255 / 0.12);
   }
   &--danger {
-    background: #ff5fa2;
-    color: #2b0b5e;
+    background: var(--danger);
+    color: var(--danger-text);
   }
 }
 
@@ -432,6 +535,18 @@
     background: hsl(calc(var(--i) * 47deg + 270deg) 95% 70%);
     animation: confetti calc(2.4s + mod(var(--i) * 7, 11) * 0.12s)
       calc(mod(var(--i) * 53, 29) * -0.1s) linear infinite;
+  }
+}
+
+:host(.theme-christmas) .confetti span {
+  &:nth-child(3n + 1) {
+    background: #c4484d;
+  }
+  &:nth-child(3n + 2) {
+    background: #628747;
+  }
+  &:nth-child(3n) {
+    background: #f3cd71;
   }
 }
 
