@@ -125,15 +125,35 @@
 }
 
 <footer class="controls">
-  <button
-    type="button"
-    class="ctrl ctrl--small"
-    (click)="resetExercise()"
-    [disabled]="state().phase === 'idle' || state().phase === 'finished'"
-  >
-    <span aria-hidden="true">↺</span>
-    <small>Exercice</small>
-  </button>
+  <div class="controls__side controls__side--left">
+    <button
+      type="button"
+      class="ctrl ctrl--secondary ctrl--restart-series"
+      (click)="askResetSeries()"
+      [disabled]="state().phase === 'idle' || state().phase === 'finished'"
+      aria-label="Recommencer la série"
+      title="Recommencer la série"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M3 11a9 9 0 1 1 2.64 6.36" />
+        <path d="M3 4v7h7" />
+      </svg>
+    </button>
+
+    <button
+      type="button"
+      class="ctrl ctrl--secondary ctrl--back"
+      (click)="goBack()"
+      [disabled]="!canGoBack()"
+      [attr.aria-label]="backLabel()"
+      [attr.title]="backLabel()"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m15 18-6-6 6-6" />
+        <path d="M9 12h12" />
+      </svg>
+    </button>
+  </div>
 
   <div class="controls__main">
     <button
@@ -141,9 +161,8 @@
       class="ctrl ctrl--main"
       [class.is-running]="state().running"
       (click)="togglePlay()"
-      [attr.aria-label]="
-        state().running ? 'Pause' : state().phase === 'finished' ? 'Recommencer' : 'Play'
-      "
+      [attr.aria-label]="mainLabel()"
+      [attr.title]="mainLabel()"
     >
       @if (state().running) {
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -151,27 +170,33 @@
           <rect x="14" y="4" width="5" height="16" rx="1.5" />
         </svg>
       } @else if (state().phase === 'finished') {
-        <span class="ctrl__glyph" aria-hidden="true">↻</span>
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M3 11a9 9 0 1 1 2.64 6.36" />
+          <path d="M3 4v7h7" />
+        </svg>
       } @else {
         <svg viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z" />
+          <path d="m8 5 11 7-11 7z" class="ctrl__play-glyph" />
         </svg>
       }
     </button>
-    <button type="button" class="ctrl ctrl--skip" (click)="skipExercise()" [disabled]="!canSkip()">
-      Passer
-    </button>
   </div>
 
-  <button
-    type="button"
-    class="ctrl ctrl--small"
-    (click)="askResetSeries()"
-    [disabled]="state().phase === 'idle'"
-  >
-    <span aria-hidden="true">⟲</span>
-    <small>Série</small>
-  </button>
+  <div class="controls__side controls__side--right">
+    <button
+      type="button"
+      class="ctrl ctrl--secondary ctrl--next"
+      (click)="skipExercise()"
+      [disabled]="!canSkip()"
+      aria-label="Exercice suivant"
+      title="Exercice suivant"
+    >
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="m9 18 6-6-6-6" />
+        <path d="M3 12h12" />
+      </svg>
+    </button>
+  </div>
 </footer>
 
 @if (confirmingReset()) {

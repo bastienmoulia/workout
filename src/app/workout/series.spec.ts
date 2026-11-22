@@ -2,10 +2,11 @@ import { EXERCISE_MS, PREPARATION_MS, PROGRAM, RECOVERY_MS, SERIES_TOTAL_MS } fr
 import {
   INITIAL_STATE,
   SeriesState,
+  canGoBack,
   hasStarted,
+  goBack,
   pause,
   play,
-  resetExercise,
   resetSeries,
   restore,
   skipExercise,
@@ -90,40 +91,36 @@ describe('series', () => {
     expect(tick(running({ phase: 'exercise', remainingMs: 10_000 }), 3000).events).toEqual([]);
   });
 
-  it('resets the current exercise to 60 seconds, paused', () => {
+  it('returns to the current exercise preparation when stepping back during an exercise', () => {
     const state = running({ phase: 'exercise', index: 4, remainingMs: 12_000 });
-    expect(resetExercise(state)).toEqual({
-      phase: 'exercise',
-      index: 4,
-      remainingMs: EXERCISE_MS,
+    expect(goBack(state)).toEqual({
+      ...state,
+      phase: 'preparation',
+      remainingMs: PREPARATION_MS,
       running: false,
-      skipped: false,
     });
   });
 
-  it('during recovery, resets back to the exercise just finished', () => {
-    const state = running({ phase: 'recovery', index: 5, remainingMs: 8000 });
-    expect(resetExercise(state)).toEqual({
-      phase: 'exercise',
-      index: 4,
-      remainingMs: EXERCISE_MS,
-      running: false,
-      skipped: false,
-    });
+  it('returns to the preceding exercise preparation from later preparations and recovery', () => {
+    for (const phase of ['preparation', 'recovery', 'transition-preparation'] as const) {
+      expect(goBack(running({ phase, index: 4, remainingMs: 2_500 }))).toMatchObject({
+        phase: 'preparation',
+        index: 3,
+        remainingMs: PREPARATION_MS,
+        running: false,
+      });
+    }
   });
 
-  it('resets to the previous exercise after its next preparation has appeared', () => {
-    expect(
-      resetExercise(
-        running({ phase: 'transition-preparation', index: 5, remainingMs: 2500, skipped: true }),
-      ),
-    ).toMatchObject({
-      phase: 'exercise',
-      index: 4,
-      remainingMs: EXERCISE_MS,
-      running: false,
-      skipped: true,
+  it('disables stepping back when there is no previous exercise', () => {
+    expect(canGoBack(INITIAL_STATE)).toBe(false);
+    expect(canGoBack({ ...INITIAL_STATE, phase: 'preparation' })).toBe(false);
+    expect(goBack({ ...INITIAL_STATE, phase: 'preparation' })).toMatchObject({
+      phase: 'preparation',
+      index: 0,
     });
+    expect(canGoBack({ ...INITIAL_STATE, phase: 'exercise' })).toBe(true);
+    expect(canGoBack({ ...INITIAL_STATE, phase: 'finished' })).toBe(false);
   });
 
   it('keeps the ten-second transition ring continuous at its midpoint', () => {

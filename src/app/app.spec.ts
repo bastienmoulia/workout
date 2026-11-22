@@ -64,6 +64,27 @@ describe('App', () => {
     expect(el.querySelector('.ctrl--main')?.getAttribute('aria-label')).toBe('Pause');
   });
 
+  it('returns from an exercise to its paused preparation', async () => {
+    localStorage.setItem(
+      'workout.series',
+      JSON.stringify({ phase: 'exercise', index: 3, remainingMs: 20_000 }),
+    );
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const el = fixture.nativeElement as HTMLElement;
+
+    el.querySelector<HTMLButtonElement>('.ctrl--main')!.click();
+    fixture.detectChanges();
+    el.querySelector<HTMLButtonElement>('.ctrl--back')!.click();
+    fixture.detectChanges();
+
+    expect(el.querySelector('.label')?.textContent).toContain('Prépare-toi');
+    expect(el.querySelector('.ring__seconds')?.textContent?.trim()).toBe('5');
+    expect(el.querySelector('.ctrl--main')?.getAttribute('aria-label')).toBe('Play');
+    expect(el.querySelector('.ctrl--back')?.getAttribute('aria-label')).toBe('Exercice précédent');
+    fixture.destroy();
+  });
+
   it('shows the exercise animation and its accessible description during preparation', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
@@ -161,23 +182,23 @@ describe('App', () => {
     await fixture.whenStable();
     el.querySelector<HTMLButtonElement>('.ctrl--main')!.click();
     await fixture.whenStable();
-    el.querySelector<HTMLButtonElement>('.ctrl--skip')!.click();
+    el.querySelector<HTMLButtonElement>('.ctrl--next')!.click();
     await fixture.whenStable();
 
     expect(el.querySelector('.name')?.textContent).toContain('Balancements de bras de haut en bas');
     expect(el.querySelector('.ring__seconds')?.textContent?.trim()).toBe('5');
     expect(el.querySelector('.ctrl--main')?.getAttribute('aria-label')).toBe('Play');
-    expect(el.querySelector('.ctrl--skip')?.hasAttribute('disabled')).toBe(false);
+    expect(el.querySelector('.ctrl--next')?.hasAttribute('disabled')).toBe(false);
     expect(Number(el.querySelector('.ring__value')?.getAttribute('stroke-dashoffset'))).toBeCloseTo(
       Math.PI * 120,
     );
   });
 
-  it('keeps Passer unavailable before the series starts', async () => {
+  it('keeps the next-exercise button unavailable before the series starts', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const el = fixture.nativeElement as HTMLElement;
-    expect(el.querySelector<HTMLButtonElement>('.ctrl--skip')?.disabled).toBe(true);
+    expect(el.querySelector<HTMLButtonElement>('.ctrl--next')?.disabled).toBe(true);
   });
 
   it('hides the next exercise and shows a resting figure during recovery', async () => {
@@ -192,7 +213,7 @@ describe('App', () => {
     expect(el.querySelector('.label')?.textContent).toContain('Récupération');
     expect(el.querySelector('.name')).toBeNull();
     expect(el.querySelector('.animation--rest')).toBeTruthy();
-    expect(el.querySelector<HTMLButtonElement>('.ctrl--skip')?.disabled).toBe(true);
+    expect(el.querySelector<HTMLButtonElement>('.ctrl--next')?.disabled).toBe(true);
   });
 
   it('plays the finish signal when the last exercise is skipped', async () => {
@@ -230,7 +251,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
 
-    fixture.nativeElement.querySelector('.ctrl--skip').click();
+    fixture.nativeElement.querySelector('.ctrl--next').click();
     await fixture.whenStable();
 
     expect(frequencies).toEqual([523, 659, 784, 1047]);
@@ -252,7 +273,7 @@ describe('App', () => {
     vi.spyOn(sound, 'unlock').mockResolvedValue();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
-    el.querySelector<HTMLButtonElement>('.ctrl--skip')!.click();
+    el.querySelector<HTMLButtonElement>('.ctrl--next')!.click();
     fixture.detectChanges();
 
     vi.advanceTimersByTime(5_499);
@@ -289,7 +310,7 @@ describe('App', () => {
     vi.spyOn(sound, 'unlock').mockResolvedValue();
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 
-    el.querySelector<HTMLButtonElement>('.ctrl--skip')!.click();
+    el.querySelector<HTMLButtonElement>('.ctrl--next')!.click();
     fixture.detectChanges();
     el.querySelector<HTMLButtonElement>('.ctrl--main')!.click();
     fixture.detectChanges();
@@ -328,7 +349,7 @@ describe('App', () => {
     const el = fixture.nativeElement as HTMLElement;
     el.querySelector<HTMLButtonElement>('.ctrl--main')!.click();
     await fixture.whenStable();
-    el.querySelectorAll<HTMLButtonElement>('.ctrl--small')[1].click();
+    el.querySelector<HTMLButtonElement>('.ctrl--restart-series')!.click();
     await fixture.whenStable();
     expect(el.querySelector('[role="alertdialog"]')).toBeTruthy();
     el.querySelector<HTMLButtonElement>('.btn--danger')!.click();
@@ -403,7 +424,7 @@ describe('App', () => {
     fixture.detectChanges();
     update.reloadNeeded.set(true);
     fixture.detectChanges();
-    el.querySelectorAll<HTMLButtonElement>('.ctrl--small')[1].click();
+    el.querySelector<HTMLButtonElement>('.ctrl--restart-series')!.click();
     fixture.detectChanges();
     vi.advanceTimersByTime(2_000);
     expect(el.querySelector('[role="alertdialog"]')).toBeTruthy();
@@ -432,7 +453,7 @@ describe('App', () => {
     fixture.detectChanges();
     update.reloadNeeded.set(true);
     fixture.detectChanges();
-    el.querySelector<HTMLButtonElement>('.ctrl--skip')!.click();
+    el.querySelector<HTMLButtonElement>('.ctrl--next')!.click();
     fixture.detectChanges();
 
     vi.advanceTimersByTime(1_499);
