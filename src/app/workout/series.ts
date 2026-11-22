@@ -61,24 +61,30 @@ export function togglePlay(state: SeriesState): SeriesState {
   return state.running ? pause(state) : play(state);
 }
 
-export function resetExercise(state: SeriesState): SeriesState {
+export function canGoBack(state: SeriesState): boolean {
   switch (state.phase) {
     case 'exercise':
-      return { ...state, remainingMs: EXERCISE_MS, running: false };
+      return true;
+    case 'preparation':
     case 'recovery':
     case 'transition-preparation':
-      return {
-        ...state,
-        phase: 'exercise',
-        index: state.index - 1,
-        remainingMs: EXERCISE_MS,
-        running: false,
-      };
-    case 'preparation':
-      return { ...state, remainingMs: PREPARATION_MS, running: false };
+      return state.index > 0;
     default:
-      return state;
+      return false;
   }
+}
+
+export function goBack(state: SeriesState): SeriesState {
+  if (!canGoBack(state)) return state;
+
+  const index = state.phase === 'exercise' ? state.index : state.index - 1;
+  return {
+    ...state,
+    phase: 'preparation',
+    index,
+    remainingMs: PREPARATION_MS,
+    running: false,
+  };
 }
 
 export function canSkipExercise(state: SeriesState): boolean {

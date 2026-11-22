@@ -1,20 +1,15 @@
 import { Component, DestroyRef, computed, effect, inject, signal, untracked } from '@angular/core';
 import { DOCUMENT } from '@angular/common';
-import {
-  PROGRAM,
-  SERIES_TOTAL_MS,
-  EXERCISE_MS,
-  PREPARATION_MS,
-  RECOVERY_MS,
-} from './workout/program';
+import { PROGRAM, SERIES_TOTAL_MS, PREPARATION_MS, RECOVERY_MS } from './workout/program';
 import {
   SeriesEvent,
   SeriesState,
+  canGoBack as canGoBackInSeries,
   canSkipExercise,
+  goBack as goBackInSeries,
   hasStarted,
   pause,
   phaseDuration,
-  resetExercise,
   resetSeries,
   skipExercise as skipSeriesExercise,
   tick,
@@ -78,6 +73,25 @@ export class App {
   protected readonly totalLabel = formatDuration(SERIES_TOTAL_MS);
   protected readonly gesture = computed(() => gestureFor(this.exercise().name));
   protected readonly canSkip = computed(() => canSkipExercise(this.state()));
+  protected readonly canGoBack = computed(() => canGoBackInSeries(this.state()));
+  protected readonly mainLabel = computed(() => {
+    const state = this.state();
+    return state.running ? 'Pause' : state.phase === 'finished' ? 'Recommencer' : 'Play';
+  });
+  protected readonly backLabel = computed(() => {
+    switch (this.state().phase) {
+      case 'exercise':
+        return 'Retour à la préparation de cet exercice';
+      case 'preparation':
+        return 'Exercice précédent';
+      case 'recovery':
+        return 'Rejouer l’exercice terminé';
+      case 'transition-preparation':
+        return 'Retour à l’exercice précédent';
+      default:
+        return 'Exercice précédent';
+    }
+  });
 
   constructor() {
     let last = performance.now();
@@ -171,8 +185,8 @@ export class App {
     this.state.update(togglePlay);
   }
 
-  protected resetExercise(): void {
-    this.state.update(resetExercise);
+  protected goBack(): void {
+    this.state.update(goBackInSeries);
   }
 
   protected skipExercise(): void {
